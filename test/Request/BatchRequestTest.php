@@ -5,12 +5,9 @@
 namespace Procurios\Json\JsonRpc\test\Request;
 
 use InvalidArgumentException;
-use PHPUnit_Framework_MockObject_MockObject;
 use PHPUnit_Framework_TestCase;
 use Procurios\Json\JsonRpc\Request\BatchRequest;
 use Procurios\Json\JsonRpc\Request\Request;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\StreamInterface;
 
 /**
  * @link http://www.jsonrpc.org/specification#batch
