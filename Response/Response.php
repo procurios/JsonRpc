@@ -9,8 +9,8 @@ namespace Procurios\Json\JsonRpc\Response;
  */
 interface Response
 {
-	/**
-	 * @return string
-	 */
-	public function asString();
+    /**
+     * @return string
+     */
+    public function asString();
 }

@@ -14,20 +14,20 @@ use Procurios\Json\JsonRpc\Response\SuccessResponse;
  */
 class BatchResponseTest extends PHPUnit_Framework_TestCase
 {
-	public function testThatConstructorAcceptsResponses()
-	{
-		$this->assertInstanceOf(BatchResponse::class, new BatchResponse([new SuccessResponse(null, 'foo')]));
-	}
+    public function testThatConstructorAcceptsResponses()
+    {
+        $this->assertInstanceOf(BatchResponse::class, new BatchResponse([new SuccessResponse(null, 'foo')]));
+    }
 
-	public function testThatConstructorDoesNotAcceptNonResponses()
-	{
-		$this->setExpectedException(InvalidArgumentException::class);
-		new BatchResponse(['foo']);
-	}
+    public function testThatConstructorDoesNotAcceptNonResponses()
+    {
+        $this->setExpectedException(InvalidArgumentException::class);
+        new BatchResponse(['foo']);
+    }
 
-	public function testThatConstructorDoesNotAcceptBatchResponses()
-	{
-		$this->setExpectedException(InvalidArgumentException::class);
-		new BatchResponse([new BatchResponse([])]);
-	}
+    public function testThatConstructorDoesNotAcceptBatchResponses()
+    {
+        $this->setExpectedException(InvalidArgumentException::class);
+        new BatchResponse([new BatchResponse([])]);
+    }
 }

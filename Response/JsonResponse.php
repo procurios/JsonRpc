@@ -9,16 +9,16 @@ namespace Procurios\Json\JsonRpc\Response;
  */
 abstract class JsonResponse implements Response
 {
-	/**
-	 * @return string
-	 */
-	public function asString()
-	{
-		return json_encode($this->asArray());
-	}
+    /**
+     * @return string
+     */
+    public function asString()
+    {
+        return json_encode($this->asArray());
+    }
 
-	/**
-	 * @return array
-	 */
-	abstract protected function asArray();
+    /**
+     * @return array
+     */
+    abstract protected function asArray();
 }

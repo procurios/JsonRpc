@@ -9,11 +9,11 @@ namespace Procurios\Json\JsonRpc\Response;
  */
 class EmptyResponse implements Response
 {
-	/**
-	 * @return string
-	 */
-	public function asString()
-	{
-		return '';
-	}
+    /**
+     * @return string
+     */
+    public function asString()
+    {
+        return '';
+    }
 }

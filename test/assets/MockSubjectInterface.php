@@ -8,10 +8,10 @@ namespace Procurios\Json\JsonRpc\test\assets;
  */
 interface MockSubjectInterface
 {
-	/**
-	 * @param string $prefix
-	 * @param string $suffix
-	 * @return string
-	 */
-	public function foo($prefix = null, $suffix = null);
+    /**
+     * @param string $prefix
+     * @param string $suffix
+     * @return string
+     */
+    public function foo($prefix = null, $suffix = null);
 }

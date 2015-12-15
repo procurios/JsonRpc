@@ -16,165 +16,165 @@ use Procurios\Json\JsonRpc\test\assets\MockSubjectClass;
  */
 class JsonRpcServerProtocolTest extends ServerTestBase
 {
-	const NON_EXISTING_METHOD = 'oof';
+    const NON_EXISTING_METHOD = 'oof';
 
-	public function testThatANotificationWillNotGetAReply()
-	{
-		$Request = $this->createRequest('bar');
+    public function testThatANotificationWillNotGetAReply()
+    {
+        $Request = $this->createRequest('bar');
 
-		$Server = new Server(MockSubjectClass::class);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(MockSubjectClass::class);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertInstanceOf(Response::class, $Response);
-		$this->assertSame('', $Response->asString());
-	}
+        $this->assertInstanceOf(Response::class, $Response);
+        $this->assertSame('', $Response->asString());
+    }
 
-	public function testThatNotificationCausingAnErrorWillNotGetAReply()
-	{
-		$Request = $this->createRequest(self::NON_EXISTING_METHOD);
+    public function testThatNotificationCausingAnErrorWillNotGetAReply()
+    {
+        $Request = $this->createRequest(self::NON_EXISTING_METHOD);
 
-		$Server = new Server(MockSubjectClass::class);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(MockSubjectClass::class);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertInstanceOf(Response::class, $Response);
-		$this->assertSame('', $Response->asString());
-	}
+        $this->assertInstanceOf(Response::class, $Response);
+        $this->assertSame('', $Response->asString());
+    }
 
-	public function testThatABatchRequestWithOnlyNotificationsWillNotGetAReply()
-	{
-		$Request = new BatchRequest([
-			$this->createRequest('foo'),
-			$this->createRequest('bar'),
-		]);
+    public function testThatABatchRequestWithOnlyNotificationsWillNotGetAReply()
+    {
+        $Request = new BatchRequest([
+            $this->createRequest('foo'),
+            $this->createRequest('bar'),
+        ]);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleBatchRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleBatchRequest($Request);
 
-		$this->assertInstanceOf(BatchResponse::class, $Response);
-		$this->assertSame('', $Response->asString());
-	}
+        $this->assertInstanceOf(BatchResponse::class, $Response);
+        $this->assertSame('', $Response->asString());
+    }
 
-	public function testThatPositiveResponseContainsRightValues()
-	{
-		$uniqueString = uniqid();
-		$id = uniqid();
-		$Request = $this->createRequest('foo', ['does ', ' equal ' . $uniqueString . '?'], $id);
+    public function testThatPositiveResponseContainsRightValues()
+    {
+        $uniqueString = uniqid();
+        $id = uniqid();
+        $Request = $this->createRequest('foo', ['does ', ' equal ' . $uniqueString . '?'], $id);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertInstanceOf(Response::class, $Response);
+        $this->assertInstanceOf(Response::class, $Response);
 
-		$expected = [
-			'jsonrpc' => '2.0',
-			'result' => 'does foo equal ' . $uniqueString . '?',
-			'id' => $id,
-		];
+        $expected = [
+            'jsonrpc' => '2.0',
+            'result' => 'does foo equal ' . $uniqueString . '?',
+            'id' => $id,
+        ];
 
-		$json = $Response->asString();
-		$this->assertInternalType('string', $json);
+        $json = $Response->asString();
+        $this->assertInternalType('string', $json);
 
-		$data = json_decode($json, true);
-		$this->assertInternalType('array', $data);
+        $data = json_decode($json, true);
+        $this->assertInternalType('array', $data);
 
-		ksort($expected);
-		ksort($data);
+        ksort($expected);
+        ksort($data);
 
-		$this->assertSame($expected, $data);
-	}
+        $this->assertSame($expected, $data);
+    }
 
-	public function testThatByNameParametersArePassedCorrectly()
-	{
-		$Request = $this->createRequest('foo', ['suffix' => ' suffix', 'prefix' => 'prefix '], 123);
+    public function testThatByNameParametersArePassedCorrectly()
+    {
+        $Request = $this->createRequest('foo', ['suffix' => ' suffix', 'prefix' => 'prefix '], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertInstanceOf(Response::class, $Response);
+        $this->assertInstanceOf(Response::class, $Response);
 
-		$json = $Response->asString();
-		$data = json_decode($json, true);
+        $json = $Response->asString();
+        $data = json_decode($json, true);
 
-		$this->assertInternalType('array', $data);
-		$this->assertArrayHasKey('result', $data);
-		$this->assertSame('prefix foo suffix', $data['result']);
-	}
+        $this->assertInternalType('array', $data);
+        $this->assertArrayHasKey('result', $data);
+        $this->assertSame('prefix foo suffix', $data['result']);
+    }
 
-	public function testMethodNotFoundResponse()
-	{
-		$Request = $this->createRequest(self::NON_EXISTING_METHOD, [], 123);
+    public function testMethodNotFoundResponse()
+    {
+        $Request = $this->createRequest(self::NON_EXISTING_METHOD, [], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+    }
 
-	public function testTooManyParameters()
-	{
-		$Request = $this->createRequest('foo', ['a', 'b', 'c'], 123);
+    public function testTooManyParameters()
+    {
+        $Request = $this->createRequest('foo', ['a', 'b', 'c'], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testUnknownParameter()
-	{
-		$Request = $this->createRequest('foo', ['prefix' => 'a', 'infix' => 'b'], 123);
+    public function testUnknownParameter()
+    {
+        $Request = $this->createRequest('foo', ['prefix' => 'a', 'infix' => 'b'], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testParameterNotRequestedClass()
-	{
-		$Request = $this->createRequest('bar', ['object' => 'foo'], 123);
+    public function testParameterNotRequestedClass()
+    {
+        $Request = $this->createRequest('bar', ['object' => 'foo'], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testParameterWrongClass()
-	{
-		$Request = $this->createRequest('bar', ['object' => $this], 123);
+    public function testParameterWrongClass()
+    {
+        $Request = $this->createRequest('bar', ['object' => $this], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testParameterNotAnArray()
-	{
-		$Request = $this->createRequest('bar', ['array' => 'string'], 123);
+    public function testParameterNotAnArray()
+    {
+        $Request = $this->createRequest('bar', ['array' => 'string'], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
 
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testMissingNamedArgument()
-	{
-		$Request = $this->createRequest('baz', ['c' => 3], 123);
+    public function testMissingNamedArgument()
+    {
+        $Request = $this->createRequest('baz', ['c' => 3], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 
-	public function testMissingPositionalArgument()
-	{
-		$Request = $this->createRequest('baz', [], 123);
+    public function testMissingPositionalArgument()
+    {
+        $Request = $this->createRequest('baz', [], 123);
 
-		$Server = new Server(new MockSubjectClass);
-		$Response = $Server->handleRequest($Request);
-		$this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
-	}
+        $Server = new Server(new MockSubjectClass);
+        $Response = $Server->handleRequest($Request);
+        $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
+    }
 }
