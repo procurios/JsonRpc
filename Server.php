@@ -133,7 +133,6 @@ class Server
     {
         // Write json data to body
         $TargetHttpResponse->getBody()->write($Response->asString());
-        $TargetHttpResponse->withHeader('X-Fancy-Header', 'fancy');
 
         return $TargetHttpResponse->withHeader('Content-Type', ['application/json']);
     }
