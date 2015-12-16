@@ -20,7 +20,7 @@ class BatchRequest
     {
         foreach ($requests as $Request) {
             if (!$Request instanceof Request) {
-                throw new InvalidArgumentException;
+                throw new InvalidArgumentException();
             }
 
             $this->requests[] = $Request;
@@ -36,7 +36,7 @@ class BatchRequest
         $requests = [];
         foreach ($batch as $requestArray) {
             if (!is_array($requestArray)) {
-                throw new InvalidArgumentException;
+                throw new InvalidArgumentException();
             }
 
             $requests[] = Request::fromArray($requestArray);

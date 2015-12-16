@@ -47,7 +47,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
             $this->createRequest('bar'),
         ]);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleBatchRequest($Request);
 
         $this->assertInstanceOf(BatchResponse::class, $Response);
@@ -60,7 +60,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
         $id = uniqid();
         $Request = $this->createRequest('foo', ['does ', ' equal ' . $uniqueString . '?'], $id);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertInstanceOf(Response::class, $Response);
@@ -87,7 +87,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('foo', ['suffix' => ' suffix', 'prefix' => 'prefix '], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertInstanceOf(Response::class, $Response);
@@ -104,7 +104,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest(self::NON_EXISTING_METHOD, [], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
@@ -114,7 +114,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('foo', ['a', 'b', 'c'], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
@@ -124,7 +124,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('foo', ['prefix' => 'a', 'infix' => 'b'], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
@@ -134,7 +134,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('bar', ['object' => 'foo'], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
@@ -144,7 +144,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('bar', ['object' => $this], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
@@ -154,7 +154,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('bar', ['array' => 'string'], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
 
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
@@ -164,7 +164,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('baz', ['c' => 3], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
     }
@@ -173,7 +173,7 @@ class JsonRpcServerProtocolTest extends ServerTestBase
     {
         $Request = $this->createRequest('baz', [], 123);
 
-        $Server = new Server(new MockSubjectClass);
+        $Server = new Server(new MockSubjectClass());
         $Response = $Server->handleRequest($Request);
         $this->assertValidErrorResponse($Response, ErrorResponse::INVALID_PARAMS);
     }

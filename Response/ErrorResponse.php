@@ -37,19 +37,19 @@ class ErrorResponse extends JsonResponse
     public function __construct($id, $code, $message)
     {
         if (!is_scalar($id) && !is_null($id)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         if (!is_int($code)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         if (!in_array($code, self::getReservedErrorCodes()) && ($code < -32099 || $code > -32000)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         if (!is_string($message)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         $this->id = $id;

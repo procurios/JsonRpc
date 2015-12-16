@@ -21,11 +21,11 @@ class BatchResponse implements Response
     {
         foreach ($responses as $Response) {
             if (!$Response instanceof Response) {
-                throw new InvalidArgumentException;
+                throw new InvalidArgumentException();
             }
 
             if ($Response instanceof BatchResponse) {
-                throw new InvalidArgumentException;
+                throw new InvalidArgumentException();
             }
 
             if ($Response instanceof EmptyResponse) {

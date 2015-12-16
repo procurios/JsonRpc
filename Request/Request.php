@@ -42,7 +42,7 @@ class Request
         $data = json_decode($jsonString, true);
 
         if (is_null($data) && strtolower($jsonString) != 'null') {
-            throw new CouldNotParse;
+            throw new CouldNotParse();
         }
 
         if (!is_array($data)) {

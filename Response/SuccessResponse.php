@@ -23,7 +23,7 @@ class SuccessResponse extends JsonResponse
     public function __construct($id, $result)
     {
         if (!is_scalar($id) && !is_null($id)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         $this->id = $id;

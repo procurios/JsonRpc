@@ -63,20 +63,20 @@ class Subject
     public function getMethod($methodName)
     {
         if ($this->VisibilityClass && !$this->VisibilityClass->hasMethod($methodName)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         if (!$this->Subject->hasMethod($methodName)) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         $Method = $this->Subject->getMethod($methodName);
         if (!$Method->isPublic()) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         if (!$Method->isStatic() && $this->isStatic) {
-            throw new InvalidArgumentException;
+            throw new InvalidArgumentException();
         }
 
         return $Method;

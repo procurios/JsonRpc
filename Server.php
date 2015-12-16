@@ -85,7 +85,7 @@ class Server
             // Do not report errors on notifications
         }
 
-        return new EmptyResponse;
+        return new EmptyResponse();
     }
 
     /**
@@ -148,7 +148,7 @@ class Server
         try {
             return $this->Subject->getMethod($Request->getMethod());
         } catch (InvalidArgumentException $Exception) {
-            throw new MethodNotFound;
+            throw new MethodNotFound();
         }
     }
 
@@ -223,7 +223,7 @@ class Server
             }
         }
 
-        throw new TooManyParameters;
+        throw new TooManyParameters();
     }
 
     /**
