@@ -90,7 +90,7 @@ class Server
 
     /**
      * @param BatchRequest $Request
-     * @return Response
+     * @return BatchResponse
      */
     public function handleBatchRequest(BatchRequest $Request)
     {
