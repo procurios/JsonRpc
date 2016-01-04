@@ -18,9 +18,10 @@ use Procurios\Json\JsonRpc\Response\EmptyResponse;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
 use Procurios\Json\JsonRpc\Response\Response;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
-use Procurios\Json\JsonRpc\Subject\Subject;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 
 /**
@@ -29,9 +30,13 @@ use ReflectionMethod;
 class Server
 {
     /** @var null|object The subject object or null if the subject is a class */
-    private $object = null;
-    /** @var Subject */
-    private $Subject;
+    private $subject = null;
+    /** @var ReflectionClass */
+    private $SubjectClass;
+    /** @var ReflectionClass */
+    private $VisibilityClass;
+    /** @var bool */
+    private $isStatic;
 
     /**
      * @param string|object $subject Either an object or a class name to expose
@@ -39,13 +44,39 @@ class Server
      */
     public function __construct($subject, $visibilityClass = null)
     {
+        $this->isStatic = !is_object($subject);
+
+        if ($this->isStatic && !is_string($subject)) {
+            throw new InvalidArgumentException('Subject must be either an object or a class name');
+        }
+
+        try {
+            $this->SubjectClass = new ReflectionClass($subject);
+        } catch (ReflectionException $Exception) {
+            throw new InvalidArgumentException($subject . ' is not a valid class name');
+        }
+
+        if (!is_null($visibilityClass)) {
+            if (!is_string($visibilityClass)) {
+                throw new InvalidArgumentException('Visibility class must be a class name');
+            }
+
+            try {
+                $this->VisibilityClass = new ReflectionClass($visibilityClass);
+            } catch (ReflectionException $Exception) {
+                throw new InvalidArgumentException($visibilityClass . ' is not a valid class name');
+            }
+
+            if (!is_subclass_of($subject, $visibilityClass)) {
+                throw new InvalidArgumentException('Visibility class must be a parent class or interface of the given subject');
+            }
+        }
+
         if (is_object($subject)) {
-            $this->object = $subject;
+            $this->subject = $subject;
         } elseif (!is_string($subject)) {
             throw new InvalidArgumentException('Subject must either be an object or a valid class name');
         }
-
-        $this->Subject = new Subject($subject, $visibilityClass);
     }
 
     /**
@@ -144,11 +175,26 @@ class Server
      */
     private function getMethodForRequest($Request)
     {
-        try {
-            return $this->Subject->getMethod($Request->getMethod());
-        } catch (InvalidArgumentException $Exception) {
+        $methodName = $Request->getMethod();
+
+        if ($this->VisibilityClass && !$this->VisibilityClass->hasMethod($methodName)) {
             throw new MethodNotFound();
         }
+
+        if (!$this->SubjectClass->hasMethod($methodName)) {
+            throw new MethodNotFound();
+        }
+
+        $Method = $this->SubjectClass->getMethod($methodName);
+        if (!$Method->isPublic()) {
+            throw new MethodNotFound();
+        }
+
+        if (!$Method->isStatic() && $this->isStatic) {
+            throw new MethodNotFound();
+        }
+
+        return $Method;
     }
 
     /**
@@ -160,7 +206,7 @@ class Server
     {
         $Method = $this->getMethodForRequest($Request);
 
-        return $Method->invoke($this->object, ...$this->getParametersForMethodAndRequest($Method, $Request));
+        return $Method->invoke($this->subject, ...$this->getParametersForMethodAndRequest($Method, $Request));
     }
 
     /**

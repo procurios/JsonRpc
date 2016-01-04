@@ -14,6 +14,7 @@ use Procurios\Json\JsonRpc\Response\SuccessResponse;
 use Procurios\Json\JsonRpc\Server;
 use Procurios\Json\JsonRpc\test\assets\MockSubjectClass;
 use Procurios\Json\JsonRpc\test\assets\MockSubjectInterface;
+use Procurios\Json\JsonRpc\test\assets\MockSubjectParent;
 use Procurios\Json\JsonRpc\test\assets\OtherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -91,15 +92,47 @@ class JsonRpcServerTest extends ServerTestBase
         ];
     }
 
-    public function testThatValidInterfaceIsAccepted()
+    /**
+     * @dataProvider getValidVisibilityClasses
+     * @param mixed $visibilityClass
+     */
+    public function testValidVisibilityClasses($visibilityClass)
     {
-        $this->assertInstanceof(Server::class, new Server(MockSubjectClass::class, MockSubjectInterface::class));
+        $this->assertInstanceOf(Server::class, new Server(MockSubjectClass::class, $visibilityClass));
     }
 
-    public function testThatInValidInterfaceIsNotAccepted()
+    /**
+     * @return array
+     */
+    public function getValidVisibilityClasses()
+    {
+        return [
+            'interface' => [MockSubjectInterface::class],
+            'parent class' => [MockSubjectParent::class],
+        ];
+    }
+
+    /**
+     * @dataProvider getInvalidVisibilityClasses
+     * @param mixed $visibilityClass
+     */
+    public function testInvalidVisibilityClasses($visibilityClass)
     {
         $this->setExpectedException(InvalidArgumentException::class);
-        new Server(MockSubjectClass::class, OtherInterface::class);
+        new Server(MockSubjectClass::class, $visibilityClass);
+    }
+
+    /**
+     * @return array
+     */
+    public function getInvalidVisibilityClasses()
+    {
+        return [
+            'array' => [[]],
+            'string that is not a class' => ['foo bar'],
+            'other interface' => [OtherInterface::class],
+            'not parent class' => [self::class],
+        ];
     }
 
     public function testThatHandleServerRequestCallsHandleRequestWithRightParameter()
@@ -368,6 +401,24 @@ class JsonRpcServerTest extends ServerTestBase
     public function testThatObjectMethodsAreNotAvailableOnStaticClass()
     {
         $Request = $this->createRequest('foo', [], 123);
+
+        $Server = new Server(MockSubjectClass::class);
+        $Response = $Server->handleRequest($Request);
+        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+    }
+
+    public function testThatProtectedMethodsAreNotAvailable()
+    {
+        $Request = $this->createRequest('quux', [], 123);
+
+        $Server = new Server(MockSubjectClass::class);
+        $Response = $Server->handleRequest($Request);
+        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+    }
+
+    public function testThatPrivateMethodsAreNotAvailable()
+    {
+        $Request = $this->createRequest('quuux', [], 123);
 
         $Server = new Server(MockSubjectClass::class);
         $Response = $Server->handleRequest($Request);
