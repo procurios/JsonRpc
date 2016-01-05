@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit bootstrap="../../autoload.php" colors="true">
+    <testsuites>
+        <testsuite name="procurios/json-rpc Test Suite">
+            <directory>./test/</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist addUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">./</directory>
+        </whitelist>
+    </filter>
+</phpunit>
