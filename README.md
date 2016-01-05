@@ -1,4 +1,5 @@
 # JSON-RPC 2.0 Server supporting PSR-7
+[![Build Status](https://travis-ci.org/procurios/JsonRpc.svg?branch=v1.0-beta)](https://travis-ci.org/procurios/JsonRpc)
 
 ## Server
 The server is a *complete* implementation of the [JSON-RPC 2.0 specification](http://www.jsonrpc.org/specification).
