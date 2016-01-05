@@ -46,8 +46,10 @@ class Server
     {
         $this->isStatic = !is_object($subject);
 
-        if ($this->isStatic && !is_string($subject)) {
-            throw new InvalidArgumentException('Subject must be either an object or a class name');
+        if (!$this->isStatic) {
+            $this->subject = $subject;
+        } elseif (!is_string($subject)) {
+            throw new InvalidArgumentException('Subject must either be an object or a valid class name');
         }
 
         try {
@@ -70,12 +72,6 @@ class Server
             if (!is_subclass_of($subject, $visibilityClass)) {
                 throw new InvalidArgumentException('Visibility class must be a parent class or interface of the given subject');
             }
-        }
-
-        if (is_object($subject)) {
-            $this->subject = $subject;
-        } elseif (!is_string($subject)) {
-            throw new InvalidArgumentException('Subject must either be an object or a valid class name');
         }
     }
 
