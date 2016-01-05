@@ -1,5 +1,5 @@
 {
-  "name": "procurios/json_rpc",
+  "name": "procurios/json-rpc",
   "description": "JSON-RPC 2.0 server in PHP",
   "keywords": [
     "json",
