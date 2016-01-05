@@ -20,12 +20,12 @@
   },
   "autoload": {
     "psr-4": {
-      "Procurios\\JsonRpc\\": "src/"
+      "Procurios\\Json\\JsonRpc\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Procurios\\JsonRpc\\test\\": "test/"
+      "Procurios\\Json\\JsonRpc\\test\\": "test/"
     }
   },
   "minimum-stability": "dev",
