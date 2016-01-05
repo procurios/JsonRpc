@@ -16,7 +16,8 @@
     "psr/http-message": "^1.0"
   },
   "require-dev": {
-    "phpunit/PHPUnit": ">=5-stable"
+    "phpunit/PHPUnit": ">=5-stable",
+    "satooshi/php-coveralls": "dev-master"
   },
   "autoload": {
     "psr-4": {
