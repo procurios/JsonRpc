@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
@@ -6,44 +7,37 @@ namespace Procurios\Json\JsonRpc\test\Response;
 
 use InvalidArgumentException;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
+use stdClass;
+use TypeError;
 
-/**
- *
- */
 class ErrorResponseTest extends ResponseTestBase
 {
     /**
      * @dataProvider getValidIdValues
-     * @param mixed $id
      */
-    public function testValidIdValues($id)
+    public function testValidIdValues(mixed $id): void
     {
         $this->assertInstanceOf(ErrorResponse::class, new ErrorResponse($id, ErrorResponse::INTERNAL_ERROR, ''));
     }
 
     /**
      * @dataProvider getInvalidIdValues
-     * @param mixed $id
      */
-    public function testInvalidIdValues($id)
+    public function testInvalidIdValues(mixed $id): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
+        $this->expectException(TypeError::class);
         new ErrorResponse($id, ErrorResponse::INTERNAL_ERROR, '');
     }
 
     /**
      * @dataProvider getValidCodeValues
-     * @param mixed $code
      */
-    public function testValidCodeValues($code)
+    public function testValidCodeValues(int $code): void
     {
         $this->assertInstanceOf(ErrorResponse::class, new ErrorResponse(123, $code, ''));
     }
 
-    /**
-     * @return array
-     */
-    public function getValidCodeValues()
+    public function getValidCodeValues(): iterable
     {
         return [
             'pre-defined' => [-32700],
@@ -53,41 +47,37 @@ class ErrorResponseTest extends ResponseTestBase
 
     /**
      * @dataProvider getInvalidCodeValues
-     * @param mixed $code
      */
-    public function testInvalidCodeValues($code)
+    public function testInvalidCodeValues(mixed $code): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new ErrorResponse(123, $code, '');
+        $this->expectException(InvalidArgumentException::class);
+        try {
+            new ErrorResponse(123, $code, '');
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
 
-    /**
-     * @return array
-     */
-    public function getInvalidCodeValues()
+    public function getInvalidCodeValues(): iterable
     {
         return [
             'string' => ['foo'],
             'null' => [null],
             'array' => [[]],
-            'object' => [new \stdClass()],
+            'object' => [new stdClass()],
             'out-of-range' => [100],
         ];
     }
 
     /**
      * @dataProvider getValidMessageValues
-     * @param mixed $message
      */
-    public function testValidMessageValues($message)
+    public function testValidMessageValues(string $message): void
     {
         $this->assertInstanceOf(ErrorResponse::class, new ErrorResponse(123, ErrorResponse::INTERNAL_ERROR, $message));
     }
 
-    /**
-     * @return array
-     */
-    public function getValidMessageValues()
+    public function getValidMessageValues(): iterable
     {
         return [
             'empty string' => [''],
@@ -97,23 +87,23 @@ class ErrorResponseTest extends ResponseTestBase
 
     /**
      * @dataProvider getInvalidMessageValues
-     * @param mixed $message
      */
-    public function testInvalidMessageValues($message)
+    public function testInvalidMessageValues(mixed $message): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new ErrorResponse(123, ErrorResponse::INTERNAL_ERROR, $message);
+        $this->expectException(InvalidArgumentException::class);
+        try {
+            new ErrorResponse(123, ErrorResponse::INTERNAL_ERROR, $message);
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
 
-    /**
-     * @return array
-     */
-    public function getInvalidMessageValues()
+    public function getInvalidMessageValues(): iterable
     {
         return [
             'null' => [null],
             'array' => [[]],
-            'object' => [new \stdClass()],
+            'object' => [new stdClass()],
             'integer' => [100],
         ];
     }

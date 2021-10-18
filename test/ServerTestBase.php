@@ -1,83 +1,71 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test;
 
-use PHPUnit_Framework_MockObject_MockObject;
-use PHPUnit_Framework_TestCase;
+use JsonException;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use Procurios\Json\JsonRpc\Request\Request;
 use Procurios\Json\JsonRpc\Response\Response;
 
-/**
- */
-abstract class ServerTestBase extends PHPUnit_Framework_TestCase
+abstract class ServerTestBase extends TestCase
 {
-    /**
-     * @param Response $Response
-     * @param int $expectedCode
-     */
-    protected function assertValidErrorResponse($Response, $expectedCode)
+    protected static function assertValidErrorResponse(mixed $response, int $expectedCode): void
     {
-        $this->assertInstanceOf(Response::class, $Response);
+        self::assertInstanceOf(Response::class, $response);
 
-        $json = $Response->asString();
-        $data = json_decode($json, true);
+        $json = $response->asString();
+        try {
+            $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            self::assertTrue(false, $e->getMessage());
+            return;
+        }
 
-        $this->assertValidErrorResponseData($data, $expectedCode);
+        self::assertValidErrorResponseData($data, $expectedCode);
     }
-    /**
-     * @param mixed $data
-     * @param int $expectedCode
-     */
-    protected function assertValidErrorResponseData($data, $expectedCode)
+
+    protected static function assertValidErrorResponseData(mixed $data, int $expectedCode): void
     {
-        $this->assertInternalType('array', $data);
+        self::assertIsArray($data);
 
         ksort($data);
-        $this->assertSame(['error', 'id', 'jsonrpc'], array_keys($data));
-        $this->assertSame('2.0', $data['jsonrpc']);
-        $this->assertNull($data['id']);
-        $this->assertInternalType('array', $data['error']);
+        self::assertSame(['error', 'id', 'jsonrpc'], array_keys($data));
+        self::assertSame('2.0', $data['jsonrpc']);
+        self::assertNull($data['id']);
+        self::assertIsArray($data['error']);
 
         $error = $data['error'];
         ksort($error);
         unset($error['data']); // Ignore any data for this test
-        $this->assertSame(['code', 'message'], array_keys($error));
-        $this->assertSame($expectedCode, $error['code']);
-        $this->assertInternalType('string', $error['message']);
-        $this->assertNotEmpty($error['message']);
+        self::assertSame(['code', 'message'], array_keys($error));
+        self::assertSame($expectedCode, $error['code']);
+        self::assertIsString($error['message']);
+        self::assertNotEmpty($error['message']);
     }
 
-    /**
-     * @param string $methodName
-     * @param array $params
-     * @param string|int|null $id
-     * @return PHPUnit_Framework_MockObject_MockObject|Request
-     */
-    protected function createRequest($methodName, array $params = [], $id = null)
-    {
-        /** @var PHPUnit_Framework_MockObject_MockObject|Request $Request */
-        $Request = $this->getMockBuilder(Request::class)
-                ->disableOriginalConstructor()
-                ->getMock()
-        ;
+    protected function createRequest(
+        string $methodName,
+        array $params = [],
+        string|int|null $id = null
+    ): MockObject|Request {
+        /** @var MockObject|Request $request */
+        $request = $this->getMockBuilder(Request::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $Request->expects($this->any())
-            ->method('getMethod')
-            ->willReturn($methodName)
-        ;
+        $request->method('getMethod')
+            ->willReturn($methodName);
 
-        $Request->expects($this->any())
-            ->method('getParams')
-            ->willReturn($params)
-        ;
+        $request->method('getParams')
+            ->willReturn($params);
 
-        $Request->expects($this->any())
-            ->method('getId')
-            ->willReturn($id)
-        ;
+        $request->method('getId')
+            ->willReturn($id);
 
-        return $Request;
+        return $request;
     }
 }

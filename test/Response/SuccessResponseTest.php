@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
@@ -6,30 +7,28 @@ namespace Procurios\Json\JsonRpc\test\Response;
 
 use InvalidArgumentException;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
+use TypeError;
 
-/**
- *
- */
 class SuccessResponseTest extends ResponseTestBase
 {
     /**
      * @dataProvider getValidIdValues
-     * @param mixed $id
      */
-    public function testValidIdValues($id)
+    public function testValidIdValues(mixed $id): void
     {
-        $this->assertInstanceOf(SuccessResponse::class, new SuccessResponse($id, ''));
+        self::assertInstanceOf(SuccessResponse::class, new SuccessResponse($id, ''));
     }
 
     /**
      * @dataProvider getInvalidIdValues
-     * @param mixed $id
      */
-    public function testInvalidIdValues($id)
+    public function testInvalidIdValues(mixed $id): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new SuccessResponse($id, '');
+        $this->expectException(InvalidArgumentException::class);
+        try {
+            new SuccessResponse($id, '');
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
-
-
 }

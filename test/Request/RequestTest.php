@@ -1,62 +1,65 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test\Request;
 
 use InvalidArgumentException;
-use PHPUnit_Framework_MockObject_MockObject;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
 use Procurios\Json\JsonRpc\Request\BatchRequest;
 use Procurios\Json\JsonRpc\Request\Request;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
+use stdClass;
+use TypeError;
 
 /**
  * @link http://www.jsonrpc.org/specification#request_object
  */
-class RequestTest extends PHPUnit_Framework_TestCase
+class RequestTest extends TestCase
 {
-    public function testFromServerRequest()
+    public function testFromServerRequest(): void
     {
         $jsonRequestObject = [
             'jsonrpc' => '2.0',
-            'method' => uniqid(),
-            'id' => uniqid(),
+            'method' => uniqid(more_entropy: false),
+            'id' => uniqid(more_entropy: false),
         ];
 
-        $ServerRequest = $this->createServerRequestForString(json_encode($jsonRequestObject));
+        $serverRequest = $this->createServerRequestForString(json_encode($jsonRequestObject));
 
-        $Request = Request::fromHttpRequest($ServerRequest);
+        $request = Request::fromHttpRequest($serverRequest);
 
-        $this->assertInstanceof(Request::class, $Request);
-        $this->assertSame($jsonRequestObject['method'], $Request->getMethod());
-        $this->assertSame($jsonRequestObject['id'], $Request->getId());
+        self::assertInstanceof(Request::class, $request);
+        self::assertSame($jsonRequestObject['method'], $request->getMethod());
+        self::assertSame($jsonRequestObject['id'], $request->getId());
     }
 
-    public function testBatchFromServerRequest()
+    public function testBatchFromServerRequest(): void
     {
         $jsonRequestObject = [
             'jsonrpc' => '2.0',
-            'method' => uniqid(),
-            'id' => uniqid(),
+            'method' => uniqid(more_entropy: false),
+            'id' => uniqid(more_entropy: false),
         ];
 
-        $ServerRequest = $this->createServerRequestForString(json_encode([$jsonRequestObject]));
+        $serverRequest = $this->createServerRequestForString(json_encode([$jsonRequestObject]));
 
-        $Request = Request::fromHttpRequest($ServerRequest);
+        $request = Request::fromHttpRequest($serverRequest);
 
-        $this->assertInstanceof(BatchRequest::class, $Request);
+        self::assertInstanceof(BatchRequest::class, $request);
 
-        $requests = $Request->getRequests();
-        $this->assertCount(1, $requests);
+        $requests = $request->getRequests();
+        self::assertCount(1, $requests);
 
-        $FirstRequest = reset($requests);
-        $this->assertSame($jsonRequestObject['method'], $FirstRequest->getMethod());
-        $this->assertSame($jsonRequestObject['id'], $FirstRequest->getId());
+        $firstRequest = reset($requests);
+        self::assertSame($jsonRequestObject['method'], $firstRequest->getMethod());
+        self::assertSame($jsonRequestObject['id'], $firstRequest->getId());
     }
 
-    public function testThatParamsAndIdAreCaseSensitive()
+    public function testThatParamsAndIdAreCaseSensitive(): void
     {
         $data = [
             'jsonrpc' => '2.0',
@@ -65,30 +68,30 @@ class RequestTest extends PHPUnit_Framework_TestCase
             'PARAMS' => ['foo', 'bar'],
         ];
 
-        $ServerRequest = $this->createServerRequestForString(json_encode($data));
+        $serverRequest = $this->createServerRequestForString(json_encode($data));
 
-        $Request = Request::fromHttpRequest($ServerRequest);
+        $request = Request::fromHttpRequest($serverRequest);
 
-        $this->assertNull($Request->getId());
-        $this->assertSame([], $Request->getParams());
+        self::assertNull($request->getId());
+        self::assertSame([], $request->getParams());
     }
 
     /**
      * @dataProvider getInvalidDataSets
-     * @param mixed $data
      */
-    public function testInvalidDataSets($data)
+    public function testInvalidDataSets(mixed $data): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
-        $ServerRequest = $this->createServerRequestForString(json_encode($data));
-        Request::fromHttpRequest($ServerRequest);
+        try {
+            $serverRequest = $this->createServerRequestForString(json_encode($data));
+            Request::fromHttpRequest($serverRequest);
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
 
-    /**
-     * @return array
-     */
-    public function getInvalidDataSets()
+    public function getInvalidDataSets(): iterable
     {
         return [
             'string' => ['foo'],
@@ -100,93 +103,79 @@ class RequestTest extends PHPUnit_Framework_TestCase
             'wrongCaseMethod' => [['jsonrpc' => '2.0', 'METHOD' => 'foo', 'id' => 123]],
             'paramsNotAnArray' => [['jsonrpc' => '2.0', 'method' => 'foo', 'params' => 'bar', 'id' => 123]],
             'arrayAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => []]],
-            'objectAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => new \stdClass()]],
+            'objectAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => new stdClass()]],
         ];
     }
 
     /**
      * @dataProvider getValidDataSets
-     * @param mixed $data
      */
-    public function testValidDataSets($data)
+    public function testValidDataSets(array $data): void
     {
-        $ServerRequest = $this->createServerRequestForString(json_encode($data));
-        $this->assertInstanceOf(Request::class, Request::fromHttpRequest($ServerRequest));
+        $serverRequest = $this->createServerRequestForString(json_encode($data));
+        self::assertInstanceOf(Request::class, Request::fromHttpRequest($serverRequest));
     }
 
-    /**
-     * @return array
-     */
-    public function getValidDataSets()
+    public function getValidDataSets(): iterable
     {
         return [
             'stringAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 'bar']],
             'nullAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => null]],
             'numberAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 123]],
-            'fractionAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 3.3]],
+            'fractionAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 3]],
             'arrayAsParams' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 123, 'params' => ['foo', 'bar', 'baz']]],
             'associativeArrayAsParams' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => 123, 'params' => ['foo' => 'bar', 'baz' => 'qux']]],
         ];
     }
 
-    public function testThatWithParamsDoesNotChangeRequest()
+    public function testThatWithParamsDoesNotChangeRequest(): void
     {
-        $Request = new Request('foo');
-        $this->assertSame('foo', $Request->getMethod());
-        $this->assertSame([], $Request->getParams());
-        $this->assertNull($Request->getId());
+        $request = new Request('foo');
+        self::assertSame('foo', $request->getMethod());
+        self::assertSame([], $request->getParams());
+        self::assertNull($request->getId());
 
-        $OtherRequest = $Request->withParams(['foo' => 'bar']);
-        $this->assertSame('foo', $Request->getMethod());
-        $this->assertSame([], $Request->getParams());
-        $this->assertNull($Request->getId());
+        $otherRequest = $request->withParams(['foo' => 'bar']);
+        self::assertSame('foo', $request->getMethod());
+        self::assertSame([], $request->getParams());
+        self::assertNull($request->getId());
 
-        $this->assertSame('foo', $OtherRequest->getMethod());
-        $this->assertSame(['foo' => 'bar'], $OtherRequest->getParams());
-        $this->assertNull($OtherRequest->getId());
+        self::assertSame('foo', $otherRequest->getMethod());
+        self::assertSame(['foo' => 'bar'], $otherRequest->getParams());
+        self::assertNull($otherRequest->getId());
     }
 
-    public function testThatWithIdDoesNotChangeRequest()
+    public function testThatWithIdDoesNotChangeRequest(): void
     {
-        $Request = new Request('foo');
-        $this->assertSame('foo', $Request->getMethod());
-        $this->assertSame([], $Request->getParams());
-        $this->assertNull($Request->getId());
+        $request = new Request('foo');
+        self::assertSame('foo', $request->getMethod());
+        self::assertSame([], $request->getParams());
+        self::assertNull($request->getId());
 
-        $OtherRequest = $Request->withId(123);
-        $this->assertSame('foo', $Request->getMethod());
-        $this->assertSame([], $Request->getParams());
-        $this->assertNull($Request->getId());
+        $otherRequest = $request->withId(123);
+        self::assertSame('foo', $request->getMethod());
+        self::assertSame([], $request->getParams());
+        self::assertNull($request->getId());
 
-        $this->assertSame('foo', $OtherRequest->getMethod());
-        $this->assertSame([], $OtherRequest->getParams());
-        $this->assertSame(123, $OtherRequest->getId());
+        self::assertSame('foo', $otherRequest->getMethod());
+        self::assertSame([], $otherRequest->getParams());
+        self::assertSame(123, $otherRequest->getId());
     }
 
-    /**
-     * @param string $string
-     * @return ServerRequestInterface
-     */
-    private function createServerRequestForString($string)
+    private function createServerRequestForString(string $string): MockObject|ServerRequestInterface
     {
-        /** @var PHPUnit_Framework_MockObject_MockObject|StreamInterface $Body */
-        $Body = $this->getMockBuilder(StreamInterface::class)
-            ->getMock()
-        ;
-        $Body->expects($this->any())
-            ->method('__toString')
-            ->willReturn($string)
-        ;
+        /** @var MockObject|StreamInterface $body */
+        $body = $this->getMockBuilder(StreamInterface::class)
+            ->getMock();
+        $body->method('__toString')
+            ->willReturn($string);
 
-        /** @var PHPUnit_Framework_MockObject_MockObject|ServerRequestInterface $ServerRequest */
-        $ServerRequest = $this->getMockBuilder(ServerRequestInterface::class)
-            ->getMock()
-        ;
-        $ServerRequest->expects($this->any())
-            ->method('getBody')
-            ->willReturn($Body)
-        ;
+        /** @var MockObject|ServerRequestInterface $serverRequest */
+        $serverRequest = $this->getMockBuilder(ServerRequestInterface::class)
+            ->getMock();
+        $serverRequest->method('getBody')
+            ->willReturn($body);
 
-        return $ServerRequest;
+        return $serverRequest;
     }
 }

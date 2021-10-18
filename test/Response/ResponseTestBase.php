@@ -1,36 +1,30 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test\Response;
 
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
+use stdClass;
 
-/**
- */
-abstract class ResponseTestBase extends PHPUnit_Framework_TestCase
+abstract class ResponseTestBase extends TestCase
 {
-    /**
-     * @return array
-     */
-    public function getValidIdValues()
+    public function getValidIdValues(): iterable
     {
         return [
-                'string' => ['foo'],
-                'null' => [null],
-                'number' => [123],
-                'fraction' => [4.5],
+            'string' => ['foo'],
+            'null' => [null],
+            'number' => [123],
         ];
     }
 
-    /**
-     * @return array
-     */
-    public function getInvalidIdValues()
+    public function getInvalidIdValues(): iterable
     {
         return [
-                'array' => [[]],
-                'object' => [new \stdClass()],
+            'array' => [[]],
+            'object' => [new stdClass()],
+            'fraction' => [4.5],
         ];
     }
 }

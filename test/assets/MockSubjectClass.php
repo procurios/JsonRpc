@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpReturnDocTypeMismatchInspection */
 /**
  * © 2015 Procurios - License MIT
  */
@@ -22,10 +22,10 @@ class MockSubjectClass extends MockSubjectParent implements MockSubjectInterface
 
     /**
      * @param array $array
-     * @param stdClass $object
+     * @param stdClass|null $object
      * @return string
      */
-    public static function bar(array $array = [], stdClass $object = null)
+    public static function bar(array $array = [], ?stdClass $object = null)
     {
         return 'tender';
     }

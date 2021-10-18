@@ -1,13 +1,15 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test;
 
 use InvalidArgumentException;
-use PHPUnit_Framework_MockObject_MockObject;
+use PHPUnit\Framework\MockObject\MockObject;
 use Procurios\Json\JsonRpc\Request\BatchRequest;
 use Procurios\Json\JsonRpc\Request\Request;
+use Procurios\Json\JsonRpc\Response\BatchResponse;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
 use Procurios\Json\JsonRpc\Response\Response;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
@@ -19,6 +21,7 @@ use Procurios\Json\JsonRpc\test\assets\OtherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
+use TypeError;
 
 /**
  * Tests behavior of the Server class that is specific to this implementation
@@ -28,18 +31,13 @@ class JsonRpcServerTest extends ServerTestBase
     /**
      * Test that the constants used in these tests have the values as defined in the protocol
      * @dataProvider getConstantNames
-     * @param string $constantName
-     * @param int $expectedValue
      */
-    public function testConstants($constantName, $expectedValue)
+    public function testConstants(string $constantName, int $expectedValue): void
     {
-        $this->assertSame($expectedValue, constant(ErrorResponse::class . '::' . $constantName), $constantName);
+        self::assertSame($expectedValue, constant(ErrorResponse::class . '::' . $constantName), $constantName);
     }
 
-    /**
-     * @return array
-     */
-    public function getConstantNames()
+    public function getConstantNames(): iterable
     {
         return [
             ['PARSE_ERROR', -32700],
@@ -52,17 +50,13 @@ class JsonRpcServerTest extends ServerTestBase
 
     /**
      * @dataProvider getValidSubjectArguments
-     * @param mixed $subject
      */
-    public function testValidSubjectArguments($subject)
+    public function testValidSubjectArguments(mixed $subject): void
     {
-        $this->assertInstanceof(Server::class, new Server($subject));
+        self::assertInstanceof(Server::class, new Server($subject));
     }
 
-    /**
-     * @return array
-     */
-    public function getValidSubjectArguments()
+    public function getValidSubjectArguments(): iterable
     {
         return [
             'object' => [new MockSubjectClass()],
@@ -72,18 +66,18 @@ class JsonRpcServerTest extends ServerTestBase
 
     /**
      * @dataProvider getInValidSubjectArguments
-     * @param mixed $subject
      */
-    public function testInValidSubjectArguments($subject)
+    public function testInValidSubjectArguments(mixed $subject): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new Server($subject);
+        $this->expectException(InvalidArgumentException::class);
+        try {
+            new Server($subject);
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
 
-    /**
-     * @return array
-     */
-    public function getInValidSubjectArguments()
+    public function getInValidSubjectArguments(): iterable
     {
         return [
             'null' => [null],
@@ -94,17 +88,13 @@ class JsonRpcServerTest extends ServerTestBase
 
     /**
      * @dataProvider getValidVisibilityClasses
-     * @param mixed $visibilityClass
      */
-    public function testValidVisibilityClasses($visibilityClass)
+    public function testValidVisibilityClasses(string $visibilityClass): void
     {
-        $this->assertInstanceOf(Server::class, new Server(MockSubjectClass::class, $visibilityClass));
+        self::assertInstanceOf(Server::class, new Server(MockSubjectClass::class, $visibilityClass));
     }
 
-    /**
-     * @return array
-     */
-    public function getValidVisibilityClasses()
+    public function getValidVisibilityClasses(): iterable
     {
         return [
             'interface' => [MockSubjectInterface::class],
@@ -114,18 +104,18 @@ class JsonRpcServerTest extends ServerTestBase
 
     /**
      * @dataProvider getInvalidVisibilityClasses
-     * @param mixed $visibilityClass
      */
-    public function testInvalidVisibilityClasses($visibilityClass)
+    public function testInvalidVisibilityClasses(mixed $visibilityClass): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new Server(MockSubjectClass::class, $visibilityClass);
+        $this->expectException(InvalidArgumentException::class);
+        try {
+            new Server(MockSubjectClass::class, $visibilityClass);
+        } catch (TypeError $e) {
+            throw new InvalidArgumentException($e->getMessage(), previous: $e);
+        }
     }
 
-    /**
-     * @return array
-     */
-    public function getInvalidVisibilityClasses()
+    public function getInvalidVisibilityClasses(): iterable
     {
         return [
             'array' => [[]],
@@ -135,101 +125,97 @@ class JsonRpcServerTest extends ServerTestBase
         ];
     }
 
-    public function testThatHandleServerRequestCallsHandleRequestWithRightParameter()
+    public function testThatHandleServerRequestCallsHandleRequestWithRightParameter(): void
     {
         $data = [
             'jsonrpc' => '2.0',
-            'method' => uniqid(),
-            'id' => uniqid(),
-            'params' => [uniqid() => uniqid()],
+            'method' => uniqid(more_entropy: false),
+            'id' => uniqid(more_entropy: false),
+            'params' => [uniqid(more_entropy: false) => uniqid(more_entropy: false)],
         ];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($data)));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($data)));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        /** @var PHPUnit_Framework_MockObject_MockObject|Server $Server */
-        $Server = $this->getMockBuilder(Server::class)
+        /** @var MockObject|Server $server */
+        $server = $this->getMockBuilder(Server::class)
             ->disableOriginalConstructor()
-            ->setMethods(['handleRequest'])
-            ->getMock()
-        ;
+            ->onlyMethods(['handleRequest'])
+            ->getMock();
 
-        $Response = $this->getMockBuilder(Response::class)->getMock();
-        $RequestParameter = null;
-        $Server->expects($this->once())
+        $response = $this->getMockBuilder(Response::class)->getMock();
+        $requestParameter = null;
+        $server->expects($this->once())
             ->method('handleRequest')
-            ->willReturnCallback(function (Request $Request) use (&$RequestParameter, $Response)
-            {
-                $RequestParameter = $Request;
-                return $Response;
-            })
-        ;
+            ->willReturnCallback(function (Request $request) use (&$requestParameter, $response) {
+                $requestParameter = $request;
+                return $response;
+            });
 
-        $Server->handleServerRequest($ServerRequest, $ServerResponse);
+        $server->handleServerRequest($serverRequest, $serverResponse);
 
-        /** @var Request $RequestParameter */
-        $this->assertInstanceOf(Request::class, $RequestParameter);
-        $this->assertSame($data['method'], $RequestParameter->getMethod());
-        $this->assertSame($data['id'], $RequestParameter->getId());
-        $this->assertSame($data['params'], $RequestParameter->getParams());
+        /** @var Request $requestParameter */
+        self::assertInstanceOf(Request::class, $requestParameter);
+        self::assertSame($data['method'], $requestParameter->getMethod());
+        self::assertSame($data['id'], $requestParameter->getId());
+        self::assertSame($data['params'], $requestParameter->getParams());
     }
 
-    public function testThatHandleServerRequestCallsHandleBatchRequestWithRightParameter()
+    public function testThatHandleServerRequestCallsHandleBatchRequestWithRightParameter(): void
     {
         $data = [
             'jsonrpc' => '2.0',
-            'method' => uniqid(),
-            'id' => uniqid(),
-            'params' => [uniqid() => uniqid()],
+            'method' => uniqid(more_entropy: false),
+            'id' => uniqid(more_entropy: false),
+            'params' => [uniqid(more_entropy: false) => uniqid(more_entropy: false)],
         ];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$data])));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$data])));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        /** @var PHPUnit_Framework_MockObject_MockObject|Server $Server */
-        $Server = $this->getMockBuilder(Server::class)
+        /** @var MockObject|Server $server */
+        $server = $this->getMockBuilder(Server::class)
             ->disableOriginalConstructor()
-            ->setMethods(['handleBatchRequest'])
-            ->getMock()
-        ;
+            ->onlyMethods(['handleBatchRequest'])
+            ->getMock();
 
-        $Response = $this->getMockBuilder(Response::class)->getMock();
-        $RequestParameter = null;
-        $Server->expects($this->once())
+        $response = $this->getMockBuilder(BatchResponse::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $requestParameter = null;
+        $server->expects($this->once())
             ->method('handleBatchRequest')
-            ->willReturnCallback(function (BatchRequest $Request) use (&$RequestParameter, $Response)
-            {
-                $RequestParameter = $Request;
-                return $Response;
-            })
-        ;
+            ->willReturnCallback(function (BatchRequest $request) use (&$requestParameter, $response) {
+                $requestParameter = $request;
+                return $response;
+            });
 
-        $Server->handleServerRequest($ServerRequest, $ServerResponse);
+        $server->handleServerRequest($serverRequest, $serverResponse);
 
-        /** @var BatchRequest $RequestParameter */
-        $this->assertInstanceOf(BatchRequest::class, $RequestParameter);
+        /** @var BatchRequest $requestParameter */
+        self::assertInstanceOf(BatchRequest::class, $requestParameter);
 
-        $requests = $RequestParameter->getRequests();
-        $FirstRequest = reset($requests);
-        $this->assertSame($data['method'], $FirstRequest->getMethod());
-        $this->assertSame($data['id'], $FirstRequest->getId());
-        $this->assertSame($data['params'], $FirstRequest->getParams());
+        $requests = $requestParameter->getRequests();
+        $firstRequest = reset($requests);
+        self::assertSame($data['method'], $firstRequest->getMethod());
+        self::assertSame($data['id'], $firstRequest->getId());
+        self::assertSame($data['params'], $firstRequest->getParams());
     }
 
-    public function testParseError()
+    public function testParseError(): void
     {
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents('{'));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents('{'));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleServerRequest($ServerRequest, $ServerResponse);
-        $json = $Response->getBody()->__toString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
-        $this->assertValidErrorResponseData($data, ErrorResponse::PARSE_ERROR);
+        self::assertValidErrorResponseData($data, ErrorResponse::PARSE_ERROR);
     }
 
-    public function testInvalidRequestError()
+    public function testInvalidRequestError(): void
     {
         $invalidRequestData = [
             'jsonrpc' => '2.0',
@@ -237,18 +223,18 @@ class JsonRpcServerTest extends ServerTestBase
             'params' => 'bar',
         ];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($invalidRequestData)));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($invalidRequestData)));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleServerRequest($ServerRequest, $ServerResponse);
-        $json = $Response->getBody()->__toString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
-        $this->assertValidErrorResponseData($data, ErrorResponse::INVALID_REQUEST);
+        self::assertValidErrorResponseData($data, ErrorResponse::INVALID_REQUEST);
     }
 
-    public function testValidNotification()
+    public function testValidNotification(): void
     {
         $validRequestData = [
             'jsonrpc' => '2.0',
@@ -257,23 +243,23 @@ class JsonRpcServerTest extends ServerTestBase
 
         $headers = [];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleServerRequest($ServerRequest, $ServerResponse);
-        $json = $Response->getBody()->__toString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $json = $response->getBody()->__toString();
 
-        $this->assertSame('', $json);
+        self::assertSame('', $json);
 
         $headers = array_change_key_case($headers, CASE_LOWER);
-        $this->assertArrayHasKey('content-type', $headers);
-        $this->assertSame(['application/json'], $headers['content-type']);
+        self::assertArrayHasKey('content-type', $headers);
+        self::assertSame(['application/json'], $headers['content-type']);
     }
 
-    public function testValidRequest()
+    public function testValidRequest(): void
     {
-        $id = uniqid();
+        $id = uniqid(more_entropy: false);
         $validRequestData = [
             'jsonrpc' => '2.0',
             'method' => 'foo',
@@ -283,30 +269,30 @@ class JsonRpcServerTest extends ServerTestBase
 
         $headers = [];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleServerRequest($ServerRequest, $ServerResponse);
-        $json = $Response->getBody()->__toString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
-        $this->assertInternalType('array', $data);
+        self::assertIsArray($data);
 
         ksort($data);
-        $this->assertSame(['id', 'jsonrpc', 'result'], array_keys($data));
-        $this->assertSame($id, $data['id']);
-        $this->assertSame('2.0', $data['jsonrpc']);
-        $this->assertSame($id . 'foo', $data['result']);
+        self::assertSame(['id', 'jsonrpc', 'result'], array_keys($data));
+        self::assertSame($id, $data['id']);
+        self::assertSame('2.0', $data['jsonrpc']);
+        self::assertSame($id . 'foo', $data['result']);
 
         $headers = array_change_key_case($headers, CASE_LOWER);
-        $this->assertArrayHasKey('content-type', $headers);
-        $this->assertSame(['application/json'], $headers['content-type']);
+        self::assertArrayHasKey('content-type', $headers);
+        self::assertSame(['application/json'], $headers['content-type']);
     }
 
-    public function testValidBatchRequest()
+    public function testValidBatchRequest(): void
     {
-        $id = uniqid();
+        $id = uniqid(more_entropy: false);
         $validRequestData = [
             'jsonrpc' => '2.0',
             'method' => 'foo',
@@ -316,232 +302,202 @@ class JsonRpcServerTest extends ServerTestBase
 
         $headers = [];
 
-        $ServerRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$validRequestData])));
-        $ServerResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
+        $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$validRequestData])));
+        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleServerRequest($ServerRequest, $ServerResponse);
-        $json = $Response->getBody()->__toString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $json = $response->getBody()->__toString();
         $batchData = json_decode($json, true);
 
-        $this->assertInternalType('array', $batchData);
-        $this->assertCount(1, $batchData);
-        $this->assertArrayHasKey(0, $batchData);
+        self::assertIsArray($batchData);
+        self::assertCount(1, $batchData);
+        self::assertArrayHasKey(0, $batchData);
 
         $data = $batchData[0];
-        $this->assertInternalType('array', $data);
+        self::assertIsArray($data);
 
         ksort($data);
-        $this->assertSame(['id', 'jsonrpc', 'result'], array_keys($data));
-        $this->assertSame($id, $data['id']);
-        $this->assertSame('2.0', $data['jsonrpc']);
-        $this->assertSame($id . 'foo', $data['result']);
+        self::assertSame(['id', 'jsonrpc', 'result'], array_keys($data));
+        self::assertSame($id, $data['id']);
+        self::assertSame('2.0', $data['jsonrpc']);
+        self::assertSame($id . 'foo', $data['result']);
 
         $headers = array_change_key_case($headers, CASE_LOWER);
-        $this->assertArrayHasKey('content-type', $headers);
-        $this->assertSame(['application/json'], $headers['content-type']);
+        self::assertArrayHasKey('content-type', $headers);
+        self::assertSame(['application/json'], $headers['content-type']);
     }
 
-    public function testDefaultValueForSkippedArguments()
+    public function testDefaultValueForSkippedArguments(): void
     {
-        $Request = $this->createRequest('baz', ['a' => 1, 'c' => 3], 123);
+        $request = $this->createRequest('baz', ['a' => 1, 'c' => 3], 123);
         $expected = [
             'a' => 1,
             'b' => 'b',
             'c' => 3,
         ];
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleRequest($Request);
-        $json = $Response->asString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleRequest($request);
+        $json = $response->asString();
 
         $data = json_decode($json, true);
-        $this->assertInternalType('array', $data);
-        $this->assertArrayHasKey('result', $data);
-        $this->assertInternalType('array', $data['result']);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('result', $data);
+        self::assertIsArray($data['result']);
         ksort($data['result']);
-        $this->assertSame($expected, $data['result']);
+        self::assertSame($expected, $data['result']);
     }
 
-    public function testThatVariadicArgumentAcceptsManyValues()
+    public function testThatVariadicArgumentAcceptsManyValues(): void
     {
         $values = range(1, mt_rand(10, 20));
         $expectedResult = implode(',', $values);
-        $Request = $this->createRequest('qux', $values, 123);
+        $request = $this->createRequest('qux', $values, 123);
 
-        $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleRequest($Request);
-        $json = $Response->asString();
-
-        $data = json_decode($json, true);
-        $this->assertInternalType('array', $data);
-        $this->assertArrayHasKey('result', $data);
-        $this->assertSame($expectedResult, $data['result']);
-    }
-
-    public function testThatAnInterfaceWillLimitAvailableMethods()
-    {
-        $ValidRequest = $this->createRequest('foo', [], 123);
-        $InvalidRequest = $this->createRequest('bar', [], 123);
-
-        $Server = new Server(new MockSubjectClass(), MockSubjectInterface::class);
-        $Response = $Server->handleRequest($ValidRequest);
-        $json = $Response->asString();
+        $server = new Server(new MockSubjectClass());
+        $response = $server->handleRequest($request);
+        $json = $response->asString();
 
         $data = json_decode($json, true);
-        $this->assertInternalType('array', $data);
-        $this->assertArrayHasKey('result', $data);
-        $this->assertSame('foo', $data['result']);
-
-        $Response = $Server->handleRequest($InvalidRequest);
-
-        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('result', $data);
+        self::assertSame($expectedResult, $data['result']);
     }
 
-    public function testThatObjectMethodsAreNotAvailableOnStaticClass()
+    public function testThatAnInterfaceWillLimitAvailableMethods(): void
     {
-        $Request = $this->createRequest('foo', [], 123);
+        $validRequest = $this->createRequest('foo', [], 123);
+        $invalidRequest = $this->createRequest('bar', [], 123);
 
-        $Server = new Server(MockSubjectClass::class);
-        $Response = $Server->handleRequest($Request);
-        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+        $server = new Server(new MockSubjectClass(), MockSubjectInterface::class);
+        $response = $server->handleRequest($validRequest);
+        $json = $response->asString();
+
+        $data = json_decode($json, true);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('result', $data);
+        self::assertSame('foo', $data['result']);
+
+        $response = $server->handleRequest($invalidRequest);
+
+        self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
 
-    public function testThatProtectedMethodsAreNotAvailable()
+    public function testThatObjectMethodsAreNotAvailableOnStaticClass(): void
     {
-        $Request = $this->createRequest('quux', [], 123);
+        $request = $this->createRequest('foo', [], 123);
 
-        $Server = new Server(MockSubjectClass::class);
-        $Response = $Server->handleRequest($Request);
-        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+        $server = new Server(MockSubjectClass::class);
+        $response = $server->handleRequest($request);
+        self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
 
-    public function testThatPrivateMethodsAreNotAvailable()
+    public function testThatProtectedMethodsAreNotAvailable(): void
     {
-        $Request = $this->createRequest('quuux', [], 123);
+        $request = $this->createRequest('quux', [], 123);
 
-        $Server = new Server(MockSubjectClass::class);
-        $Response = $Server->handleRequest($Request);
-        $this->assertValidErrorResponse($Response, ErrorResponse::METHOD_NOT_FOUND);
+        $server = new Server(MockSubjectClass::class);
+        $response = $server->handleRequest($request);
+        self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
 
-    public function testThatHandleRequestIsUsedForBatchRequests()
+    public function testThatPrivateMethodsAreNotAvailable(): void
+    {
+        $request = $this->createRequest('quuux', [], 123);
+
+        $server = new Server(MockSubjectClass::class);
+        $response = $server->handleRequest($request);
+        self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
+    }
+
+    public function testThatHandleRequestIsUsedForBatchRequests(): void
     {
         $requests = [
             'foo' => $this->createRequest('foo'),
             'bar' => $this->createRequest('bar'),
             'baz' => $this->createRequest('baz'),
         ];
-        $BatchRequest = new BatchRequest(...$requests);
+        $batchRequest = new BatchRequest(...$requests);
 
-        /** @var PHPUnit_Framework_MockObject_MockObject|Server $Server */
-        $Server = $this->getMockBuilder(Server::class)
+        /** @var MockObject|Server $server */
+        $server = $this->getMockBuilder(Server::class)
             ->disableOriginalConstructor()
-            ->setMethods(['handleRequest'])
-            ->getMock()
-        ;
+            ->onlyMethods(['handleRequest'])
+            ->getMock();
 
-        $Server->expects($this->any())
-            ->method('handleRequest')
-            ->willReturnCallback(function (Request $Request) use (&$requests)
-            {
-                $method = $Request->getMethod();
-                $this->assertArrayHasKey($method, $requests);
+        $server->method('handleRequest')
+            ->willReturnCallback(function (Request $request) use (&$requests) {
+                $method = $request->getMethod();
+                self::assertArrayHasKey($method, $requests);
                 unset($requests[$method]);
                 return new SuccessResponse(null, $method);
             });
 
-        $BatchResponse = $Server->handleBatchRequest($BatchRequest);
+        $batchResponse = $server->handleBatchRequest($batchRequest);
 
         // Every request should be passed to handleRequest
-        $this->assertCount(0, $requests);
+        self::assertCount(0, $requests);
 
-        $json = $BatchResponse->asString();
+        $json = $batchResponse->asString();
         $data = json_decode($json, true);
 
-        $this->assertInternalType('array', $data);
+        self::assertIsArray($data);
         $results = [];
         foreach ($data as $responseData) {
-            $this->assertArrayHasKey('result', $responseData);
+            self::assertArrayHasKey('result', $responseData);
             $results[] = $responseData['result'];
         }
         sort($results);
 
-        $this->assertSame(['bar', 'baz', 'foo'], $results);
+        self::assertSame(['bar', 'baz', 'foo'], $results);
     }
 
-    /**
-     * @param string $contents
-     * @return PHPUnit_Framework_MockObject_MockObject|StreamInterface
-     */
-    private function createBodyWithContents($contents)
+    private function createBodyWithContents(string $contents): MockObject|StreamInterface
     {
-        $Body = $this->getMockBuilder(StreamInterface::class)
-            ->getMock()
-        ;
+        $body = $this->getMockBuilder(StreamInterface::class)
+            ->getMock();
 
-        $Body->expects($this->any())
-            ->method('write')
-            ->willReturnCallback(function ($data) use (&$contents)
-            {
+        $body->method('write')
+            ->willReturnCallback(function ($data) use (&$contents) {
                 $contents .= $data;
-            })
-        ;
+            });
 
-        $Body->expects($this->any())
-            ->method('__toString')
-            ->willReturnCallback(function () use (&$contents)
-            {
+        $body->method('__toString')
+            ->willReturnCallback(function () use (&$contents) {
                 return $contents;
-            })
-        ;
+            });
 
-        return $Body;
+        return $body;
     }
 
-    /**
-     * @param StreamInterface $Body
-     * @return PHPUnit_Framework_MockObject_MockObject|ServerRequestInterface
-     */
-    private function createServerRequestWithBody($Body)
+    private function createServerRequestWithBody(StreamInterface $body): MockObject|ServerRequestInterface
     {
-        $ServerRequest = $this->getMockBuilder(ServerRequestInterface::class)
-            ->getMock()
-        ;
+        $serverRequest = $this->getMockBuilder(ServerRequestInterface::class)
+            ->getMock();
 
-        $ServerRequest->expects($this->any())
-            ->method('getBody')
-            ->willReturn($Body)
-        ;
+        $serverRequest->method('getBody')
+            ->willReturn($body);
 
-        return $ServerRequest;
+        return $serverRequest;
     }
 
-    /**
-     * @param StreamInterface $Body
-     * @param array $headers
-     * @return PHPUnit_Framework_MockObject_MockObject|ResponseInterface
-     */
-    private function createServerResponseWithBody($Body, array &$headers = [])
-    {
-        $ServerRequest = $this->getMockBuilder(ResponseInterface::class)
-            ->getMock()
-        ;
+    private function createServerResponseWithBody(
+        StreamInterface $body,
+        array &$headers = []
+    ): MockObject|ResponseInterface {
+        $serverRequest = $this->getMockBuilder(ResponseInterface::class)
+            ->getMock();
 
-        $ServerRequest->expects($this->any())
-            ->method('getBody')
-            ->willReturn($Body)
-        ;
+        $serverRequest->method('getBody')
+            ->willReturn($body);
 
-        $ServerRequest->expects($this->any())
-            ->method('withHeader')
-            ->willReturnCallback(function ($headerName, $headerValue) use (&$headers, $ServerRequest)
-            {
+        $serverRequest->method('withHeader')
+            ->willReturnCallback(function ($headerName, $headerValue) use (&$headers, $serverRequest) {
                 $headers[$headerName] = (array)$headerValue;
-                return $ServerRequest;
-            })
-        ;
+                return $serverRequest;
+            });
 
-        return $ServerRequest;
+        return $serverRequest;
     }
 }

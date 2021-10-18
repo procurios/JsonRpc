@@ -1,33 +1,32 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test\Response;
 
 use InvalidArgumentException;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use Procurios\Json\JsonRpc\Response\BatchResponse;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
+use TypeError;
 
-/**
- *
- */
-class BatchResponseTest extends PHPUnit_Framework_TestCase
+class BatchResponseTest extends TestCase
 {
-    public function testThatConstructorAcceptsResponses()
+    public function testThatConstructorAcceptsResponses(): void
     {
-        $this->assertInstanceOf(BatchResponse::class, new BatchResponse([new SuccessResponse(null, 'foo')]));
+        self::assertInstanceOf(BatchResponse::class, new BatchResponse(new SuccessResponse(null, 'foo')));
     }
 
-    public function testThatConstructorDoesNotAcceptNonResponses()
+    public function testThatConstructorDoesNotAcceptNonResponses(): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new BatchResponse(['foo']);
+        $this->expectException(TypeError::class);
+        new BatchResponse('foo');
     }
 
-    public function testThatConstructorDoesNotAcceptBatchResponses()
+    public function testThatConstructorDoesNotAcceptBatchResponses(): void
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new BatchResponse([new BatchResponse([])]);
+        $this->expectException(InvalidArgumentException::class);
+        new BatchResponse(new BatchResponse());
     }
 }

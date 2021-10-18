@@ -1,11 +1,12 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\test\Request;
 
 use InvalidArgumentException;
-use PHPUnit_Framework_TestCase;
+use PHPUnit\Framework\TestCase;
 use Procurios\Json\JsonRpc\Request\BatchRequest;
 use Procurios\Json\JsonRpc\Request\Request;
 use TypeError;
@@ -13,35 +14,35 @@ use TypeError;
 /**
  * @link http://www.jsonrpc.org/specification#batch
  */
-class BatchRequestTest extends PHPUnit_Framework_TestCase
+class BatchRequestTest extends TestCase
 {
-    public function testFromArray()
+    public function testFromArray(): void
     {
         $batch = [];
         $num = 3;
         for ($i = 0; $i < $num; $i++) {
-            $id = uniqid();
+            $id = uniqid(more_entropy: false);
             $batch[$id] = [
                 'jsonrpc' => '2.0',
-                'method' => uniqid(),
+                'method' => uniqid(more_entropy: false),
                 'id' => $id,
             ];
         }
 
-        $BatchRequest = BatchRequest::fromArray($batch);
-        $requests = $BatchRequest->getRequests();
+        $batchRequest = BatchRequest::fromArray($batch);
+        $requests = $batchRequest->getRequests();
 
-        $this->assertCount($num, $requests);
-        foreach ($requests as $Request) {
-            $this->assertInstanceOf(Request::class, $Request);
+        self::assertCount($num, $requests);
+        foreach ($requests as $request) {
+            self::assertInstanceOf(Request::class, $request);
 
-            $id = $Request->getId();
-            $this->assertArrayHasKey($id, $batch);
-            $this->assertSame($batch[$id]['method'], $Request->getMethod());
+            $id = $request->getId();
+            self::assertArrayHasKey($id, $batch);
+            self::assertSame($batch[$id]['method'], $request->getMethod());
         }
     }
 
-    public function testFromArrayWithNonArrayValue()
+    public function testFromArrayWithNonArrayValue(): void
     {
         $batch = [
             [
@@ -52,11 +53,11 @@ class BatchRequestTest extends PHPUnit_Framework_TestCase
             'foo',
         ];
 
-        $this->setExpectedException(InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         BatchRequest::fromArray($batch);
     }
 
-    public function testFromArrayWithInvalidArrayValue()
+    public function testFromArrayWithInvalidArrayValue(): void
     {
         $batch = [
             [
@@ -65,18 +66,18 @@ class BatchRequestTest extends PHPUnit_Framework_TestCase
             ],
         ];
 
-        $this->setExpectedException(InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         BatchRequest::fromArray($batch);
     }
 
-    public function testThatConstructorAcceptsRequests()
+    public function testThatConstructorAcceptsRequests(): void
     {
-        $this->assertInstanceOf(BatchRequest::class, new BatchRequest(new Request('foo')));
+        self::assertInstanceOf(BatchRequest::class, new BatchRequest(new Request('foo')));
     }
 
-    public function testThatConstructorDoesNotAcceptNonRequests()
+    public function testThatConstructorDoesNotAcceptNonRequests(): void
     {
-        $this->setExpectedException(TypeError::class);
+        $this->expectException(TypeError::class);
         new BatchRequest('foo');
     }
 }
