@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use PHPUnit_Framework_TestCase;
 use Procurios\Json\JsonRpc\Request\BatchRequest;
 use Procurios\Json\JsonRpc\Request\Request;
+use TypeError;
 
 /**
  * @link http://www.jsonrpc.org/specification#batch
@@ -70,12 +71,12 @@ class BatchRequestTest extends PHPUnit_Framework_TestCase
 
     public function testThatConstructorAcceptsRequests()
     {
-        $this->assertInstanceOf(BatchRequest::class, new BatchRequest([new Request('foo')]));
+        $this->assertInstanceOf(BatchRequest::class, new BatchRequest(new Request('foo')));
     }
 
     public function testThatConstructorDoesNotAcceptNonRequests()
     {
-        $this->setExpectedException(InvalidArgumentException::class);
-        new BatchRequest(['foo']);
+        $this->setExpectedException(TypeError::class);
+        new BatchRequest('foo');
     }
 }

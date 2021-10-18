@@ -42,13 +42,13 @@ class JsonRpcServerProtocolTest extends ServerTestBase
 
     public function testThatABatchRequestWithOnlyNotificationsWillNotGetAReply()
     {
-        $Request = new BatchRequest([
+        $request = new BatchRequest(
             $this->createRequest('foo'),
             $this->createRequest('bar'),
-        ]);
+        );
 
         $Server = new Server(new MockSubjectClass());
-        $Response = $Server->handleBatchRequest($Request);
+        $Response = $Server->handleBatchRequest($request);
 
         $this->assertInstanceOf(BatchResponse::class, $Response);
         $this->assertSame('', $Response->asString());

@@ -432,7 +432,7 @@ class JsonRpcServerTest extends ServerTestBase
             'bar' => $this->createRequest('bar'),
             'baz' => $this->createRequest('baz'),
         ];
-        $BatchRequest = new BatchRequest($requests);
+        $BatchRequest = new BatchRequest(...$requests);
 
         /** @var PHPUnit_Framework_MockObject_MockObject|Server $Server */
         $Server = $this->getMockBuilder(Server::class)

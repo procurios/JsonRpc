@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
@@ -6,51 +7,37 @@ namespace Procurios\Json\JsonRpc\Response;
 
 use InvalidArgumentException;
 
-/**
- *
- */
 class BatchResponse implements Response
 {
     /** @var Response[] */
-    private $responses;
+    private array $responses;
 
-    /**
-     * @param Response[] $responses
-     */
-    public function __construct(array $responses)
+    public function __construct(Response ...$responses)
     {
-        foreach ($responses as $Response) {
-            if (!$Response instanceof Response) {
-                throw new InvalidArgumentException();
-            }
-
-            if ($Response instanceof BatchResponse) {
-                throw new InvalidArgumentException();
-            }
-
-            if ($Response instanceof EmptyResponse) {
+        $this->responses = [];
+        foreach ($responses as $response) {
+            if ($response instanceof EmptyResponse) {
                 continue;
             }
 
-            $this->responses[] = $Response;
+            if ($response instanceof self) {
+                throw new InvalidArgumentException();
+            }
+
+            $this->responses[] = $response;
         }
     }
 
-    /**
-     * @return string
-     */
-    public function asString()
+    public function asString(): string
     {
-        if (count($this->responses) == 0) {
+        if ($this->responses === []) {
             return '';
         }
 
         return '[' .
             implode(',',
-                array_map(function (Response $Response)
-                    {
-                        return $Response->asString();
-                    },
+                array_map(
+                    static fn (Response $response) => $response->asString(),
                     $this->responses
                 )
             ) .

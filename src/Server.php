@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
@@ -23,6 +24,9 @@ use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
+use ReflectionNamedType;
+use RuntimeException;
+use TypeError;
 
 /**
  * JSON-RPC 2.0 server
@@ -30,19 +34,16 @@ use ReflectionMethod;
 class Server
 {
     /** @var null|object The subject object or null if the subject is a class */
-    private $subject = null;
-    /** @var ReflectionClass */
-    private $SubjectClass;
-    /** @var ReflectionClass */
-    private $VisibilityClass;
-    /** @var bool */
-    private $isStatic;
+    private ?object $subject = null;
+    private ReflectionClass $subjectClass;
+    private ?ReflectionClass $visibilityClass = null;
+    private bool $isStatic;
 
     /**
      * @param string|object $subject Either an object or a class name to expose
-     * @param string $visibilityClass A parent class or interface to which the exposed methods will be limited
+     * @param string|null $visibilityClass A parent class or interface to which the exposed methods will be limited
      */
-    public function __construct($subject, $visibilityClass = null)
+    public function __construct(string|object $subject, ?string $visibilityClass = null)
     {
         $this->isStatic = !is_object($subject);
 
@@ -53,19 +54,15 @@ class Server
         }
 
         try {
-            $this->SubjectClass = new ReflectionClass($subject);
-        } catch (ReflectionException $Exception) {
+            $this->subjectClass = new ReflectionClass($subject);
+        } catch (ReflectionException) {
             throw new InvalidArgumentException($subject . ' is not a valid class name');
         }
 
         if (!is_null($visibilityClass)) {
-            if (!is_string($visibilityClass)) {
-                throw new InvalidArgumentException('Visibility class must be a class name');
-            }
-
             try {
-                $this->VisibilityClass = new ReflectionClass($visibilityClass);
-            } catch (ReflectionException $Exception) {
+                $this->visibilityClass = new ReflectionClass($visibilityClass);
+            } catch (ReflectionException) {
                 throw new InvalidArgumentException($visibilityClass . ' is not a valid class name');
             }
 
@@ -75,203 +72,185 @@ class Server
         }
     }
 
-    /**
-     * @param Request $Request
-     * @return Response
-     */
-    public function handleRequest(Request $Request)
+    public function handleRequest(Request $request): Response
     {
-        if (is_null($Request->getId())) {
-            return $this->handleNotification($Request);
+        if (is_null($request->getId())) {
+            return $this->handleNotification($request);
         }
 
         try {
-            $result = $this->invokeRequest($Request);
+            $result = $this->invokeRequest($request);
 
-            return new SuccessResponse($Request->getId(), $result);
-        } catch (MethodNotFound $Exception) {
-            return ErrorResponse::methodNotFound($Request->getId());
-        } catch (TooManyParameters $Exception) {
-            return ErrorResponse::invalidParameters($Request->getId(), 'Too many parameters');
-        } catch (InvalidParameter $Exception) {
-            return ErrorResponse::invalidParameters($Request->getId(), $Exception->getMessage() ?: null);
-        } catch (MissingParameter $Exception) {
-            return ErrorResponse::invalidParameters($Request->getId(), $Exception->getMessage() ?: null);
+            return new SuccessResponse($request->getId(), $result);
+        } catch (MethodNotFound) {
+            return ErrorResponse::methodNotFound($request->getId());
+        } catch (TooManyParameters) {
+            return ErrorResponse::invalidParameters($request->getId(), 'Too many parameters');
+        } catch (InvalidParameter | MissingParameter $e) {
+            return ErrorResponse::invalidParameters($request->getId(), $e->getMessage() ?: null);
         }
     }
 
-    /**
-     * @param Request $Request
-     * @return EmptyResponse
-     */
-    private function handleNotification(Request $Request)
+    private function handleNotification(Request $request): EmptyResponse
     {
         try {
-            $this->invokeRequest($Request);
-        } catch (JsonRpcError $Exception) {
+            $this->invokeRequest($request);
+        } catch (JsonRpcError) {
             // Do not report errors on notifications
         }
 
         return new EmptyResponse();
     }
 
-    /**
-     * @param BatchRequest $Request
-     * @return BatchResponse
-     */
-    public function handleBatchRequest(BatchRequest $Request)
+    public function handleBatchRequest(BatchRequest $request): BatchResponse
     {
-        $responses = [];
-        foreach ($Request->getRequests() as $Request) {
-            $responses[] = $this->handleRequest($Request);
-        }
-        return new BatchResponse($responses);
+        return new BatchResponse(
+            ...array_map(
+                fn(Request $request) => $this->handleRequest($request),
+                $request->getRequests()
+            )
+        );
     }
 
     /**
      * Convenience method to handle a ServerRequestInterface object directly
-     * @param ServerRequestInterface $HttpRequest
-     * @param ResponseInterface $TargetHttpResponse
-     * @return ResponseInterface
      */
-    public function handleServerRequest(ServerRequestInterface $HttpRequest, ResponseInterface $TargetHttpResponse)
+    public function handleServerRequest(ServerRequestInterface $httpRequest, ResponseInterface $targetHttpResponse): ResponseInterface
     {
         try {
-            $Request = Request::fromHttpRequest($HttpRequest);
-        } catch (CouldNotParse $Exception) {
-            return $this->httpResponseFromResponse(ErrorResponse::parseError(), $TargetHttpResponse);
-        } catch (InvalidArgumentException $Exception) {
-            return $this->httpResponseFromResponse(ErrorResponse::invalidRequest($Exception->getMessage()), $TargetHttpResponse);
+            $request = Request::fromHttpRequest($httpRequest);
+        } catch (CouldNotParse) {
+            return $this->httpResponseFromResponse(ErrorResponse::parseError(), $targetHttpResponse);
+        } catch (InvalidArgumentException | TypeError $e) {
+            return $this->httpResponseFromResponse(ErrorResponse::invalidRequest($e->getMessage()), $targetHttpResponse);
         }
 
-        if ($Request instanceof BatchRequest) {
-            return $this->httpResponseFromResponse($this->handleBatchRequest($Request), $TargetHttpResponse);
-        }
-
-        return $this->httpResponseFromResponse($this->handleRequest($Request), $TargetHttpResponse);
+        return $this->httpResponseFromResponse(
+            $request instanceof BatchRequest ? $this->handleBatchRequest($request) : $this->handleRequest($request),
+            $targetHttpResponse
+        );
     }
 
-    /**
-     * @param Response $Response
-     * @param ResponseInterface $TargetHttpResponse
-     * @return ResponseInterface
-     */
-    private function httpResponseFromResponse(Response $Response, ResponseInterface $TargetHttpResponse)
+    private function httpResponseFromResponse(Response $response, ResponseInterface $targetHttpResponse): ResponseInterface
     {
         // Write json data to body
-        $TargetHttpResponse->getBody()->write($Response->asString());
+        $targetHttpResponse->getBody()->write($response->asString());
 
-        return $TargetHttpResponse->withHeader('Content-Type', ['application/json']);
+        return $targetHttpResponse->withHeader('Content-Type', ['application/json']);
     }
 
     /**
-     * @param Request $Request
-     * @return ReflectionMethod
      * @throws MethodNotFound
      */
-    private function getMethodForRequest($Request)
+    private function getMethodForRequest(Request $request): ReflectionMethod
     {
-        $methodName = $Request->getMethod();
+        $methodName = $request->getMethod();
 
-        if ($this->VisibilityClass && !$this->VisibilityClass->hasMethod($methodName)) {
+        if ($this->visibilityClass && !$this->visibilityClass->hasMethod($methodName)) {
             throw new MethodNotFound();
         }
 
-        if (!$this->SubjectClass->hasMethod($methodName)) {
+        if (!$this->subjectClass->hasMethod($methodName)) {
             throw new MethodNotFound();
         }
 
-        $Method = $this->SubjectClass->getMethod($methodName);
-        if (!$Method->isPublic()) {
+        try {
+            $method = $this->subjectClass->getMethod($methodName);
+        } catch (ReflectionException) {
             throw new MethodNotFound();
         }
 
-        if (!$Method->isStatic() && $this->isStatic) {
+        if (!$method->isPublic()) {
             throw new MethodNotFound();
         }
 
-        return $Method;
+        if ($this->isStatic && !$method->isStatic()) {
+            throw new MethodNotFound();
+        }
+
+        return $method;
     }
 
     /**
-     * @param Request $Request
-     * @return mixed
-     * @throws MethodNotFound
+     * @throws MethodNotFound|InvalidParameter|MissingParameter|TooManyParameters
      */
-    private function invokeRequest(Request $Request)
+    private function invokeRequest(Request $request): mixed
     {
-        $Method = $this->getMethodForRequest($Request);
+        $method = $this->getMethodForRequest($request);
 
-        return $Method->invoke($this->subject, ...$this->getParametersForMethodAndRequest($Method, $Request));
+        try {
+            return $method->invoke(
+                $this->subject,
+                ...$this->getParametersForMethodAndRequest($method, $request)
+            );
+        } catch (ReflectionException) {
+            throw new MethodNotFound();
+        }
     }
 
     /**
-     * @param ReflectionMethod $Method
-     * @param Request $Request
-     * @return array
-     * @throws InvalidParameter
-     * @throws MissingParameter
-     * @throws TooManyParameters
+     * @throws InvalidParameter|MissingParameter|TooManyParameters
      */
-    private function getParametersForMethodAndRequest(ReflectionMethod $Method, Request $Request)
+    private function getParametersForMethodAndRequest(ReflectionMethod $method, Request $request): array
     {
-        $parameters = $Request->getParams();
-        $methodParameters = $Method->getParameters();
+        $parameters = $request->getParams();
+        $methodParameters = $method->getParameters();
 
         $isAssociative = $this->isAssociative($parameters);
 
         $n = 0;
         $parametersByPosition = [];
-        foreach ($methodParameters as $ExpectedParameter) {
-            $key = $isAssociative ? $ExpectedParameter->getName() : $n;
+        foreach ($methodParameters as $expectedParameter) {
+            $key = $isAssociative ? $expectedParameter->getName() : $n;
             if (!array_key_exists($key, $parameters)) {
-                if (!$ExpectedParameter->isOptional()) {
-                    throw new MissingParameter('Required parameter <' . $ExpectedParameter->getName() . '> was not passed');
+                if (!$expectedParameter->isOptional()) {
+                    throw new MissingParameter('Required parameter <' . $expectedParameter->getName() . '> was not passed');
                 }
 
-                if (count($parameters) == 0) {
+                if ($parameters === []) {
                     continue;
                 }
 
-                $parametersByPosition[] = $ExpectedParameter->getDefaultValue() ?: null;
+                try {
+                    $parametersByPosition[] = $expectedParameter->getDefaultValue() ?: null;
+                } catch (ReflectionException $e) {
+                    throw new RuntimeException($e->getMessage(), previous: $e);
+                }
                 continue;
             }
 
             $parameter = $parameters[$key];
             unset($parameters[$key]);
 
-            $ExpectedClass = $ExpectedParameter->getClass();
-            if (!is_null($ExpectedClass) && (!is_object($parameter) || !$ExpectedClass->isInstance($parameter))) {
-                throw new InvalidParameter('Parameter <' . $ExpectedParameter->getName() . '> must be of type <' . $ExpectedClass->getName() . '>');
-            }
-
-            if ($ExpectedParameter->isArray() && !is_array($parameter)) {
-                throw new InvalidParameter('Parameter <' . $ExpectedParameter->getName() . '> must be an array');
+            $parameterType = $expectedParameter->getType();
+            if ($parameterType instanceof ReflectionNamedType) {
+                $expectedTypeName = $parameterType->getName();
+                if (!$parameterType->isBuiltin()) {
+                    if ((!is_object($parameter) || !($parameter instanceof $expectedTypeName))) {
+                        throw new InvalidParameter('Parameter <' . $expectedParameter->getName() . '> must be of type <' . $expectedTypeName . '>');
+                    }
+                } elseif ($expectedTypeName === 'array' && !is_array($parameter)) {
+                    throw new InvalidParameter('Parameter <' . $expectedParameter->getName() . '> must be an array');
+                }
             }
 
             $parametersByPosition[] = $parameter;
             $n++;
         }
 
-        if (count($parameters) == 0) {
+        if ($parameters === []) {
             return $parametersByPosition;
         }
 
-        if (isset($ExpectedParameter) && !$isAssociative) {
-            // Check if the method has a variadic argument that will accept any number of arguments
-            if (method_exists($ExpectedParameter, 'isVariadic') && $ExpectedParameter->isVariadic()) {
-                return array_merge($parametersByPosition, $parameters);
-            }
+        // Check if the method has a variadic argument that will accept any number of arguments
+        if (isset($expectedParameter) && !$isAssociative && $expectedParameter->isVariadic()) {
+            return array_merge($parametersByPosition, $parameters);
         }
 
         throw new TooManyParameters();
     }
 
-    /**
-     * @param array $array
-     * @return bool
-     */
-    private function isAssociative(array $array)
+    private function isAssociative(array $array): bool
     {
         if (key($array) !== 0) {
             return true;

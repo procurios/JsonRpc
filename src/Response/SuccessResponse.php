@@ -1,39 +1,17 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\Response;
 
-use InvalidArgumentException;
-
-/**
- *
- */
 class SuccessResponse extends JsonResponse
 {
-    /** @var string|int|null */
-    private $id;
-    /** @var mixed */
-    private $result;
-
-    /**
-     * @param string|int|null $id
-     * @param mixed $result
-     */
-    public function __construct($id, $result)
+    public function __construct(private string|int|null $id, private mixed $result)
     {
-        if (!is_scalar($id) && !is_null($id)) {
-            throw new InvalidArgumentException();
-        }
-
-        $this->id = $id;
-        $this->result = $result;
     }
 
-    /**
-     * @return array
-     */
-    protected function asArray()
+    protected function asArray(): array
     {
         return [
             'jsonrpc' => '2.0',

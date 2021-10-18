@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
@@ -6,32 +7,17 @@ namespace Procurios\Json\JsonRpc\Request;
 
 use InvalidArgumentException;
 
-/**
- */
 class BatchRequest
 {
     /** @var Request[] */
-    private $requests = [];
+    private array $requests;
 
-    /**
-     * @param Request[] $requests
-     */
-    public function __construct(array $requests = [])
+    public function __construct(Request ...$requests)
     {
-        foreach ($requests as $Request) {
-            if (!$Request instanceof Request) {
-                throw new InvalidArgumentException();
-            }
-
-            $this->requests[] = $Request;
-        }
+        $this->requests = $requests;
     }
 
-    /**
-     * @param array $batch
-     * @return BatchRequest
-     */
-    public static function fromArray(array $batch)
+    public static function fromArray(array $batch): self
     {
         $requests = [];
         foreach ($batch as $requestArray) {
@@ -42,13 +28,13 @@ class BatchRequest
             $requests[] = Request::fromArray($requestArray);
         }
 
-        return new self($requests);
+        return new self(...$requests);
     }
 
     /**
      * @return Request[]
      */
-    public function getRequests()
+    public function getRequests(): array
     {
         return $this->requests;
     }

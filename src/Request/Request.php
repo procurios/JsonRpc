@@ -1,47 +1,38 @@
 <?php
+declare(strict_types=1);
 /**
  * © 2015 Procurios - License MIT
  */
 namespace Procurios\Json\JsonRpc\Request;
 
 use InvalidArgumentException;
+use JsonException;
 use Procurios\Json\JsonRpc\exception\CouldNotParse;
 use Psr\Http\Message\ServerRequestInterface;
 
-/**
- */
 class Request
 {
-    /** @var string */
-    private $method;
-    /** @var array */
-    private $params = [];
-    /** @var string|int|null */
-    private $id;
+    private array $params = [];
+    private string|int|null $id = null;
 
-    /**
-     * @param string $method
-     */
-    public function __construct($method)
+    public function __construct(private string $method)
     {
-        if (!is_string($method)) {
-            throw new InvalidArgumentException('Method member should be a string');
-        }
-        $this->method = $method;
     }
 
     /**
-     * @param ServerRequestInterface $ServerRequest
-     * @return BatchRequest|Request
      * @throws CouldNotParse
      */
-    public static function fromHttpRequest(ServerRequestInterface $ServerRequest)
+    public static function fromHttpRequest(ServerRequestInterface $serverRequest): self|BatchRequest
     {
-        $Body = $ServerRequest->getBody();
-        $jsonString = $Body->__toString();
-        $data = json_decode($jsonString, true);
+        $body = $serverRequest->getBody();
+        $jsonString = $body->__toString();
+        try {
+            $data = json_decode($jsonString, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new CouldNotParse(previous: $e);
+        }
 
-        if (is_null($data) && strtolower($jsonString) != 'null') {
+        if (is_null($data) && strtolower($jsonString) !== 'null') {
             throw new CouldNotParse();
         }
 
@@ -57,29 +48,22 @@ class Request
         return self::fromArray($data);
     }
 
-    /**
-     * @param array $data
-     * @return Request
-     */
-    public static function fromArray(array $data)
+    public static function fromArray(array $data): self
     {
         self::validateData($data);
 
-        $Request = new self($data['method']);
+        $request = new self($data['method']);
         if (array_key_exists('params', $data)) {
-            $Request->setParams($data['params']);
+            $request->setParams($data['params']);
         }
         if (array_key_exists('id', $data)) {
-            $Request->setId($data['id']);
+            $request->setId($data['id']);
         }
 
-        return $Request;
+        return $request;
     }
 
-    /**
-     * @param array $data
-     */
-    private static function validateData(array $data)
+    private static function validateData(array $data): void
     {
         if (!array_key_exists('jsonrpc', $data)) {
             throw new InvalidArgumentException('Missing jsonrpc member');
@@ -87,78 +71,51 @@ class Request
         if ($data['jsonrpc'] !== '2.0') {
             throw new InvalidArgumentException('Member jsonrpc must be exactly "2.0"');
         }
-
         if (!array_key_exists('method', $data)) {
             throw new InvalidArgumentException('Missing method member');
         }
     }
 
-    /**
-     * @return string
-     */
-    public function getMethod()
+    public function getMethod(): string
     {
         return $this->method;
     }
 
-    /**
-     * @param array $params
-     * @return Request
-     */
-    public function withParams($params)
+    public function withParams(array $params): self
     {
-        $Clone = clone $this;
-        $Clone->setParams($params);
+        $clone = clone $this;
+        $clone->setParams($params);
 
-        return $Clone;
+        return $clone;
     }
 
-    /**
-     * @param array $params
-     */
-    private function setParams($params)
+    private function setParams(array $params): void
     {
-        if (!is_array($params)) {
-            throw new InvalidArgumentException('Member params should be either an object or an array');
-        }
         $this->params = $params;
     }
 
-    /**
-     * @return array
-     */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
 
-    /**
-     * @param string|int|null $id
-     * @return Request
-     */
-    public function withId($id)
+    public function withId(string|int|null $id): self
     {
-        $Clone = clone $this;
-        $Clone->setId($id);
+        $clone = clone $this;
+        $clone->setId($id);
 
-        return $Clone;
+        return $clone;
     }
 
     /**
      * @param string|int|null $id
      */
-    private function setId($id)
+    private function setId(string|int|null $id): void
     {
-        if (!is_scalar($id) && !is_null($id)) {
-            throw new InvalidArgumentException('Member id should be either a string, number or Null');
-        }
         $this->id = $id;
     }
 
-    /**
-     * @return string|int|null
-     */
-    public function getId()
+    public function getId(): int|string|null
     {
         return $this->id;
     }
