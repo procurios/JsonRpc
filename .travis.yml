@@ -8,4 +8,4 @@ install: composer install
 script: ./vendor/bin/phpunit
 
 after_success:
-  - travis_retry php ./vendor/bin/coveralls -v
+  - travis_retry php ./vendor/bin/php-coveralls -v
