@@ -1,5 +1,5 @@
 # JSON-RPC 2.0 Server supporting PSR-7
-[![Build Status](https://travis-ci.org/procurios/JsonRpc.svg?branch=v1.0-beta)](https://travis-ci.org/procurios/JsonRpc)
+[![Build Status](https://app.travis-ci.com/procurios/JsonRpc.svg?branch=master)](https://app.travis-ci.com/github/procurios/JsonRpc)
 [![Coverage Status](https://coveralls.io/repos/procurios/JsonRpc/badge.svg?branch=master&service=github)](https://coveralls.io/github/procurios/JsonRpc?branch=master)
 
 ## Server
