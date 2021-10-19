@@ -15,16 +15,15 @@ abstract class JsonResponse implements Response
             return json_encode($this->asArray(), JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             $errorCode = ErrorResponse::INTERNAL_ERROR;
-            $errorMessage = 'Unable to encode JSON';
             return <<<JSON
                 {
-                    "jsonrpc" => "2.0",
-                    "error" => [
-                        "code" => {$errorCode},
-                        "message" => {$errorMessage},
-                    ],
-                    "id" => null,
-                };
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": {$errorCode},
+                        "message": "Unable to encode JSON"
+                    },
+                    "id": null
+                }
                 JSON;
         }
     }
