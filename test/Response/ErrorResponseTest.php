@@ -7,6 +7,7 @@ namespace Procurios\Json\JsonRpc\test\Response;
 
 use InvalidArgumentException;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
+use Procurios\Json\JsonRpc\Response\JsonResponse;
 use stdClass;
 use TypeError;
 
@@ -106,5 +107,30 @@ class ErrorResponseTest extends ResponseTestBase
             'object' => [new stdClass()],
             'integer' => [100],
         ];
+    }
+
+    public function testDefaultErrorResponseForInvalidJson(): void
+    {
+        $response = new class extends JsonResponse {
+            protected function asArray(): array
+            {
+                return [
+                    fopen(__FILE__, 'rb'),
+                ];
+            }
+        };
+        $json = $response->asString();
+        $data = json_decode($json, true);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('jsonrpc', $data);
+        self::assertSame('2.0', $data['jsonrpc']);
+
+        self::assertArrayHasKey('error', $data);
+        self::assertIsArray($data['error']);
+        self::assertArrayHasKey('code', $data['error']);
+        self::assertSame(ErrorResponse::INTERNAL_ERROR, $data['error']['code']);
+        self::assertArrayHasKey('message', $data['error']);
+
+        self::assertArrayHasKey('id', $data);
     }
 }

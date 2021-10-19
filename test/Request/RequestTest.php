@@ -104,6 +104,7 @@ class RequestTest extends TestCase
             'paramsNotAnArray' => [['jsonrpc' => '2.0', 'method' => 'foo', 'params' => 'bar', 'id' => 123]],
             'arrayAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => []]],
             'objectAsId' => [['jsonrpc' => '2.0', 'method' => 'foo', 'id' => new stdClass()]],
+            'null' => [null],
         ];
     }
 
