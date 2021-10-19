@@ -16,7 +16,7 @@ To encourage interface segregation there is no support for other methods like cl
 - PSR-7 compatible: This server can directly handle implementations of ```Psr\Http\Message\ServerRequestInterface```, returning an implementation of ```Psr\Http\Message\ResponseInterface```, as defined in [PSR-7](http://www.php-fig.org/psr/psr-7/)
 
 ### Requirements
-PHP >= 5.6
+PHP >= 8.0
 
 ## Example
 
