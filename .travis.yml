@@ -3,7 +3,7 @@ php:
   - 8.0
 
 install: composer install
-script: ./vendor/bin/phpunit
+script: XDEBUG_MODE=coverage ./vendor/bin/phpunit
 
 after_success:
   - travis_retry php ./vendor/bin/php-coveralls -v
