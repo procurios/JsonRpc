@@ -32,10 +32,6 @@ class Request
             throw new CouldNotParse(previous: $e);
         }
 
-        if (is_null($data) && strtolower($jsonString) !== 'null') {
-            throw new CouldNotParse();
-        }
-
         if (!is_array($data)) {
             throw new InvalidArgumentException('Request should be an object or an array of objects');
         }

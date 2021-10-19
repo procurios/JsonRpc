@@ -45,12 +45,11 @@ class Server
      */
     public function __construct(string|object $subject, ?string $visibilityClass = null)
     {
-        $this->isStatic = !is_object($subject);
-
-        if (!$this->isStatic) {
+        if (is_object($subject)) {
+            $this->isStatic = false;
             $this->subject = $subject;
-        } elseif (!is_string($subject)) {
-            throw new InvalidArgumentException('Subject must either be an object or a valid class name');
+        } else {
+            $this->isStatic = true;
         }
 
         try {
@@ -150,10 +149,6 @@ class Server
             throw new MethodNotFound();
         }
 
-        if (!$this->subjectClass->hasMethod($methodName)) {
-            throw new MethodNotFound();
-        }
-
         try {
             $method = $this->subjectClass->getMethod($methodName);
         } catch (ReflectionException) {
@@ -178,14 +173,10 @@ class Server
     {
         $method = $this->getMethodForRequest($request);
 
-        try {
-            return $method->invoke(
-                $this->subject,
-                ...$this->getParametersForMethodAndRequest($method, $request)
-            );
-        } catch (ReflectionException) {
-            throw new MethodNotFound();
-        }
+        return $method->invoke(
+            $this->subject,
+            ...$this->getParametersForMethodAndRequest($method, $request)
+        );
     }
 
     /**
@@ -211,11 +202,7 @@ class Server
                     continue;
                 }
 
-                try {
-                    $parametersByPosition[] = $expectedParameter->getDefaultValue() ?: null;
-                } catch (ReflectionException $e) {
-                    throw new RuntimeException($e->getMessage(), previous: $e);
-                }
+                $parametersByPosition[] = $expectedParameter->getDefaultValue() ?: null;
                 continue;
             }
 
