@@ -1,3 +1,5 @@
 /build
 /phpunit.xml
 /vendor
+/.phpunit.*
+/.idea
