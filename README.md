@@ -69,9 +69,9 @@ die($response->asString());
 
 ```php
 <?php
-use Procurios\Json\JsonRpc\Server;
+use Procurios\Json\JsonRpc\RequestHandler;
 
-$server = new Server($myResponseFactory, new MySubjectClass);
+$server = RequestHandler::create($myResponseFactory, new MySubjectClass);
 
 // Use the current Psr\Http\Message\ServerRequestInterface implementation in your application
 $request = MyRequestSource::getRequest();

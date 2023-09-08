@@ -6,7 +6,6 @@ declare(strict_types=1);
 namespace Procurios\Json\JsonRpc;
 
 use InvalidArgumentException;
-use Procurios\Json\JsonRpc\exception\CouldNotParse;
 use Procurios\Json\JsonRpc\exception\InvalidParameter;
 use Procurios\Json\JsonRpc\exception\JsonRpcError;
 use Procurios\Json\JsonRpc\exception\MethodNotFound;
@@ -19,20 +18,15 @@ use Procurios\Json\JsonRpc\Response\EmptyResponse;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
 use Procurios\Json\JsonRpc\Response\Response;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
-use TypeError;
 
 /**
  * JSON-RPC 2.0 server
  */
-class Server implements RequestHandlerInterface
+class Server
 {
     /** @var null|object The subject object or null if the subject is a class */
     private ?object $subject = null;
@@ -45,7 +39,6 @@ class Server implements RequestHandlerInterface
      * @param string|null $visibilityClass A parent class or interface to which the exposed methods will be limited
      */
     public function __construct(
-        private ResponseFactoryInterface $responseFactory,
         string|object $subject,
         ?string $visibilityClass = null
     ) {
@@ -113,33 +106,6 @@ class Server implements RequestHandlerInterface
                 $request->getRequests()
             )
         );
-    }
-
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        try {
-            $jsonRpcRequest = Request::fromHttpRequest($request);
-        } catch (CouldNotParse) {
-            return $this->httpResponseFromResponse(ErrorResponse::parseError());
-        } catch (InvalidArgumentException | TypeError $e) {
-            return $this->httpResponseFromResponse(ErrorResponse::invalidRequest($e->getMessage()));
-        }
-
-        return $this->httpResponseFromResponse(
-            $jsonRpcRequest instanceof BatchRequest
-                ? $this->handleBatchRequest($jsonRpcRequest)
-                : $this->handleRequest($jsonRpcRequest)
-        );
-    }
-
-    private function httpResponseFromResponse(Response $response): ResponseInterface
-    {
-        $httpResponse = $this->responseFactory->createResponse();
-
-        // Write json data to body
-        $httpResponse->getBody()->write($response->asString());
-
-        return $httpResponse->withHeader('Content-Type', ['application/json']);
     }
 
     /**
