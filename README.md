@@ -65,21 +65,18 @@ header('Content-Type: application/json');
 die($response->asString());
 ```
 
-### Handle PSR-7 ServerRequestInterface
+### Handle using PSR-15 RequestHandlerInterface
 
 ```php
 <?php
 use Procurios\Json\JsonRpc\Server;
 
-$server = new Server(new MySubjectClass);
+$server = new Server($myResponseFactory, new MySubjectClass);
 
 // Use the current Psr\Http\Message\ServerRequestInterface implementation in your application
 $request = MyRequestSource::getRequest();
 
-// Create an empty implementation of Psr\Http\Message\ResponseInterface
-$baseResponse = MyResponseFactory::createResponse();
-
-$response = $server->handleServerRequest($request, $baseResponse);
+$response = $server->handle($request);
 
 MyResponseEmitter::emit($response);
 ```

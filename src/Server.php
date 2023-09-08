@@ -27,7 +27,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
-use RuntimeException;
 use TypeError;
 
 /**
@@ -76,11 +75,6 @@ class Server implements RequestHandlerInterface
         }
     }
 
-    public function handle(ServerRequestInterface $request): ResponseInterface
-    {
-        return $this->handleServerRequest($request, $this->responseFactory->createResponse());
-    }
-
     public function handleRequest(Request $request): Response
     {
         if (is_null($request->getId())) {
@@ -121,31 +115,31 @@ class Server implements RequestHandlerInterface
         );
     }
 
-    /**
-     * Convenience method to handle a ServerRequestInterface object directly
-     */
-    public function handleServerRequest(ServerRequestInterface $httpRequest, ResponseInterface $targetHttpResponse): ResponseInterface
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $request = Request::fromHttpRequest($httpRequest);
+            $jsonRpcRequest = Request::fromHttpRequest($request);
         } catch (CouldNotParse) {
-            return $this->httpResponseFromResponse(ErrorResponse::parseError(), $targetHttpResponse);
+            return $this->httpResponseFromResponse(ErrorResponse::parseError());
         } catch (InvalidArgumentException | TypeError $e) {
-            return $this->httpResponseFromResponse(ErrorResponse::invalidRequest($e->getMessage()), $targetHttpResponse);
+            return $this->httpResponseFromResponse(ErrorResponse::invalidRequest($e->getMessage()));
         }
 
         return $this->httpResponseFromResponse(
-            $request instanceof BatchRequest ? $this->handleBatchRequest($request) : $this->handleRequest($request),
-            $targetHttpResponse
+            $jsonRpcRequest instanceof BatchRequest
+                ? $this->handleBatchRequest($jsonRpcRequest)
+                : $this->handleRequest($jsonRpcRequest)
         );
     }
 
-    private function httpResponseFromResponse(Response $response, ResponseInterface $targetHttpResponse): ResponseInterface
+    private function httpResponseFromResponse(Response $response): ResponseInterface
     {
-        // Write json data to body
-        $targetHttpResponse->getBody()->write($response->asString());
+        $httpResponse = $this->responseFactory->createResponse();
 
-        return $targetHttpResponse->withHeader('Content-Type', ['application/json']);
+        // Write json data to body
+        $httpResponse->getBody()->write($response->asString());
+
+        return $httpResponse->withHeader('Content-Type', ['application/json']);
     }
 
     /**

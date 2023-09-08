@@ -53,7 +53,7 @@ class JsonRpcServerTest extends ServerTestBase
      */
     public function testValidSubjectArguments(mixed $subject): void
     {
-        self::assertInstanceof(Server::class, new Server($subject));
+        self::assertInstanceof(Server::class, new Server($this->getResponseFactory(), $subject));
     }
 
     public function getValidSubjectArguments(): iterable
@@ -71,7 +71,7 @@ class JsonRpcServerTest extends ServerTestBase
     {
         $this->expectException(InvalidArgumentException::class);
         try {
-            new Server($subject);
+            new Server($this->getResponseFactory(), $subject);
         } catch (TypeError $e) {
             throw new InvalidArgumentException($e->getMessage(), previous: $e);
         }
@@ -91,7 +91,7 @@ class JsonRpcServerTest extends ServerTestBase
      */
     public function testValidVisibilityClasses(string $visibilityClass): void
     {
-        self::assertInstanceOf(Server::class, new Server(MockSubjectClass::class, $visibilityClass));
+        self::assertInstanceOf(Server::class, new Server($this->getResponseFactory(), MockSubjectClass::class, $visibilityClass));
     }
 
     public function getValidVisibilityClasses(): iterable
@@ -109,7 +109,7 @@ class JsonRpcServerTest extends ServerTestBase
     {
         $this->expectException(InvalidArgumentException::class);
         try {
-            new Server(MockSubjectClass::class, $visibilityClass);
+            new Server($this->getResponseFactory(), MockSubjectClass::class, $visibilityClass);
         } catch (TypeError $e) {
             throw new InvalidArgumentException($e->getMessage(), previous: $e);
         }
@@ -125,7 +125,7 @@ class JsonRpcServerTest extends ServerTestBase
         ];
     }
 
-    public function testThatHandleServerRequestCallsHandleRequestWithRightParameter(): void
+    public function testThatHandleCallsHandleRequestWithRightParameter(): void
     {
         $data = [
             'jsonrpc' => '2.0',
@@ -135,11 +135,10 @@ class JsonRpcServerTest extends ServerTestBase
         ];
 
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($data)));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
         /** @var MockObject|Server $server */
         $server = $this->getMockBuilder(Server::class)
-            ->disableOriginalConstructor()
+            ->setConstructorArgs([$this->getResponseFactory(), new MockSubjectClass()])
             ->onlyMethods(['handleRequest'])
             ->getMock();
 
@@ -152,7 +151,7 @@ class JsonRpcServerTest extends ServerTestBase
                 return $response;
             });
 
-        $server->handleServerRequest($serverRequest, $serverResponse);
+        $server->handle($serverRequest);
 
         /** @var Request $requestParameter */
         self::assertInstanceOf(Request::class, $requestParameter);
@@ -171,11 +170,10 @@ class JsonRpcServerTest extends ServerTestBase
         ];
 
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$data])));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
         /** @var MockObject|Server $server */
         $server = $this->getMockBuilder(Server::class)
-            ->disableOriginalConstructor()
+            ->setConstructorArgs([$this->getResponseFactory(), new MockSubjectClass()])
             ->onlyMethods(['handleBatchRequest'])
             ->getMock();
 
@@ -190,7 +188,7 @@ class JsonRpcServerTest extends ServerTestBase
                 return $response;
             });
 
-        $server->handleServerRequest($serverRequest, $serverResponse);
+        $server->handle($serverRequest);
 
         /** @var BatchRequest $requestParameter */
         self::assertInstanceOf(BatchRequest::class, $requestParameter);
@@ -205,10 +203,9 @@ class JsonRpcServerTest extends ServerTestBase
     public function testParseError(): void
     {
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents('{'));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        $server = new Server(new MockSubjectClass());
-        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
+        $response = $server->handle($serverRequest);
         $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
@@ -224,10 +221,9 @@ class JsonRpcServerTest extends ServerTestBase
         ];
 
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($invalidRequestData)));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''));
 
-        $server = new Server(new MockSubjectClass());
-        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
+        $response = $server->handle($serverRequest);
         $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
@@ -241,18 +237,15 @@ class JsonRpcServerTest extends ServerTestBase
             'method' => 'foo',
         ];
 
-        $headers = [];
-
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $server = new Server(new MockSubjectClass());
-        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
+        $response = $server->handle($serverRequest);
         $json = $response->getBody()->__toString();
 
         self::assertSame('', $json);
 
-        $headers = array_change_key_case($headers, CASE_LOWER);
+        $headers = array_change_key_case($response->getHeaders(), CASE_LOWER);
         self::assertArrayHasKey('content-type', $headers);
         self::assertSame(['application/json'], $headers['content-type']);
     }
@@ -267,13 +260,10 @@ class JsonRpcServerTest extends ServerTestBase
             'params' => [$id],
         ];
 
-        $headers = [];
-
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode($validRequestData)));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $server = new Server(new MockSubjectClass());
-        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
+        $response = $server->handle($serverRequest);
         $json = $response->getBody()->__toString();
         $data = json_decode($json, true);
 
@@ -285,7 +275,7 @@ class JsonRpcServerTest extends ServerTestBase
         self::assertSame('2.0', $data['jsonrpc']);
         self::assertSame($id . 'foo', $data['result']);
 
-        $headers = array_change_key_case($headers, CASE_LOWER);
+        $headers = array_change_key_case($response->getHeaders(), CASE_LOWER);
         self::assertArrayHasKey('content-type', $headers);
         self::assertSame(['application/json'], $headers['content-type']);
     }
@@ -300,13 +290,10 @@ class JsonRpcServerTest extends ServerTestBase
             'params' => [$id],
         ];
 
-        $headers = [];
-
         $serverRequest = $this->createServerRequestWithBody($this->createBodyWithContents(json_encode([$validRequestData])));
-        $serverResponse = $this->createServerResponseWithBody($this->createBodyWithContents(''), $headers);
 
-        $server = new Server(new MockSubjectClass());
-        $response = $server->handleServerRequest($serverRequest, $serverResponse);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
+        $response = $server->handle($serverRequest);
         $json = $response->getBody()->__toString();
         $batchData = json_decode($json, true);
 
@@ -323,7 +310,7 @@ class JsonRpcServerTest extends ServerTestBase
         self::assertSame('2.0', $data['jsonrpc']);
         self::assertSame($id . 'foo', $data['result']);
 
-        $headers = array_change_key_case($headers, CASE_LOWER);
+        $headers = array_change_key_case($response->getHeaders(), CASE_LOWER);
         self::assertArrayHasKey('content-type', $headers);
         self::assertSame(['application/json'], $headers['content-type']);
     }
@@ -337,7 +324,7 @@ class JsonRpcServerTest extends ServerTestBase
             'c' => 3,
         ];
 
-        $server = new Server(new MockSubjectClass());
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
         $response = $server->handleRequest($request);
         $json = $response->asString();
 
@@ -355,7 +342,7 @@ class JsonRpcServerTest extends ServerTestBase
         $expectedResult = implode(',', $values);
         $request = $this->createRequest('qux', $values, 123);
 
-        $server = new Server(new MockSubjectClass());
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass());
         $response = $server->handleRequest($request);
         $json = $response->asString();
 
@@ -370,7 +357,7 @@ class JsonRpcServerTest extends ServerTestBase
         $validRequest = $this->createRequest('foo', [], 123);
         $invalidRequest = $this->createRequest('bar', [], 123);
 
-        $server = new Server(new MockSubjectClass(), MockSubjectInterface::class);
+        $server = new Server($this->getResponseFactory(), new MockSubjectClass(), MockSubjectInterface::class);
         $response = $server->handleRequest($validRequest);
         $json = $response->asString();
 
@@ -388,7 +375,7 @@ class JsonRpcServerTest extends ServerTestBase
     {
         $request = $this->createRequest('foo', [], 123);
 
-        $server = new Server(MockSubjectClass::class);
+        $server = new Server($this->getResponseFactory(), MockSubjectClass::class);
         $response = $server->handleRequest($request);
         self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
@@ -397,7 +384,7 @@ class JsonRpcServerTest extends ServerTestBase
     {
         $request = $this->createRequest('quux', [], 123);
 
-        $server = new Server(MockSubjectClass::class);
+        $server = new Server($this->getResponseFactory(), MockSubjectClass::class);
         $response = $server->handleRequest($request);
         self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
@@ -406,7 +393,7 @@ class JsonRpcServerTest extends ServerTestBase
     {
         $request = $this->createRequest('quuux', [], 123);
 
-        $server = new Server(MockSubjectClass::class);
+        $server = new Server($this->getResponseFactory(), MockSubjectClass::class);
         $response = $server->handleRequest($request);
         self::assertValidErrorResponse($response, ErrorResponse::METHOD_NOT_FOUND);
     }
@@ -461,6 +448,7 @@ class JsonRpcServerTest extends ServerTestBase
         $body->method('write')
             ->willReturnCallback(function ($data) use (&$contents) {
                 $contents .= $data;
+                return strlen($data);
             });
 
         $body->method('__toString')
