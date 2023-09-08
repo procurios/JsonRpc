@@ -19,8 +19,10 @@ use Procurios\Json\JsonRpc\Response\EmptyResponse;
 use Procurios\Json\JsonRpc\Response\ErrorResponse;
 use Procurios\Json\JsonRpc\Response\Response;
 use Procurios\Json\JsonRpc\Response\SuccessResponse;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -31,7 +33,7 @@ use TypeError;
 /**
  * JSON-RPC 2.0 server
  */
-class Server
+class Server implements RequestHandlerInterface
 {
     /** @var null|object The subject object or null if the subject is a class */
     private ?object $subject = null;
@@ -43,8 +45,11 @@ class Server
      * @param string|object $subject Either an object or a class name to expose
      * @param string|null $visibilityClass A parent class or interface to which the exposed methods will be limited
      */
-    public function __construct(string|object $subject, ?string $visibilityClass = null)
-    {
+    public function __construct(
+        private ResponseFactoryInterface $responseFactory,
+        string|object $subject,
+        ?string $visibilityClass = null
+    ) {
         if (is_object($subject)) {
             $this->isStatic = false;
             $this->subject = $subject;
@@ -69,6 +74,11 @@ class Server
                 throw new InvalidArgumentException('Visibility class must be a parent class or interface of the given subject');
             }
         }
+    }
+
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this->handleServerRequest($request, $this->responseFactory->createResponse());
     }
 
     public function handleRequest(Request $request): Response

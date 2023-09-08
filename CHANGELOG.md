@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - This CHANGELOG file
+- PSR-15 RequestHandlerInterface implementation
 
 [unreleased]: https://github.com/procurios/JsonRpc/compare/v1.0-beta...2.0
 
