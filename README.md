@@ -49,45 +49,48 @@ class MySubjectClass implements MyInterface
 ```
 
 ### Handle request directly
+
 ```php
 <?php
 use Procurios\Json\JsonRpc\Server;
 use Procurios\Json\JsonRpc\Request\Request;
 
 $requestData = json_decode(file_get_contents('php://input'), true);
-$Request = Request::fromArray($requestData);
+$request = Request::fromArray($requestData);
 
-$Server = new Server(new MySubjectClass);
-$Response = $Server->handleRequest($Request);
+$server = new Server(new MySubjectClass);
+$response = $server->handleRequest($request);
 
 header('Content-Type: application/json');
-die($Response->asString());
+die($response->asString());
 ```
 
 ### Handle PSR-7 ServerRequestInterface
+
 ```php
 <?php
 use Procurios\Json\JsonRpc\Server;
 
-$Server = new Server(new MySubjectClass);
+$server = new Server(new MySubjectClass);
 
 // Use the current Psr\Http\Message\ServerRequestInterface implementation in your application
-$Request = MyRequestSource::getRequest();
+$request = MyRequestSource::getRequest();
 
 // Create an empty implementation of Psr\Http\Message\ResponseInterface
-$BaseResponse = MyResponseFactory::createResponse();
+$baseResponse = MyResponseFactory::createResponse();
 
-$Response = $Server->handleServerRequest($Request, $BaseResponse);
+$response = $server->handleServerRequest($request, $baseResponse);
 
-MyResponseEmitter::emit($Response);
+MyResponseEmitter::emit($response);
 ```
 
 ### Limit subject to an interface
+
 ```php
 <?php
 use Procurios\Json\JsonRpc\Server;
 
-$Server = new Server(new MySubjectClass, MyInterface::class);
+$server = new Server(new MySubjectClass, MyInterface::class);
 
 // Only the method foo will be available in this server, since bar is not part of the interface
 ```
