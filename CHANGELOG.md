@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v2.0]
+
 ### Added
 
 - This CHANGELOG file
@@ -20,6 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - handleServerRequest method
 
-[unreleased]: https://github.com/procurios/JsonRpc/compare/v1.0-beta...2.0
-
+[Unreleased]: https://github.com/procurios/JsonRpc/compare/v2.0...2.0
+[v2.0]: https://github.com/procurios/JsonRpc/compare/v1.0-beta...v2.0
 [v1.0-beta]: https://github.com/procurios/JsonRpc/releases/tag/v1.0-beta
