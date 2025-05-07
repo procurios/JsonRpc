@@ -35,22 +35,22 @@ class ErrorResponse extends JsonResponse
         }
     }
 
-    public static function methodNotFound(string|int|null $id, string $message = null): self
+    public static function methodNotFound(string|int|null $id, ?string $message = null): self
     {
         return new self($id, self::METHOD_NOT_FOUND, $message ?: 'Method not found');
     }
 
-    public static function parseError(string $message = null): self
+    public static function parseError(?string $message = null): self
     {
         return new self(null, self::PARSE_ERROR, $message ?: 'Parse error');
     }
 
-    public static function invalidRequest(string $message = null): self
+    public static function invalidRequest(?string $message = null): self
     {
         return new self(null, self::INVALID_REQUEST, $message ?: 'Invalid Request');
     }
 
-    public static function invalidParameters(string|int|null $id, string $message = null): self
+    public static function invalidParameters(string|int|null $id, ?string $message = null): self
     {
         return new self($id, self::INVALID_PARAMS, $message ?: 'Invalid method parameter(s)');
     }
